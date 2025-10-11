@@ -1,0 +1,31 @@
+{
+  "$schema": "https://shrimphealth.com/schema.json",
+  "checks": {
+    "bugs": true,
+    "performance": true,
+    "imports": true,
+    "consistency": true,
+    "wcag": true,
+    "nextjs": true,
+    "deadCode": true,
+    "complexity": true
+  },
+  "ignore": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    "coverage",
+    "*.test.ts",
+    "*.spec.ts",
+    "*.generated.*"
+  ],
+  "thresholds": {
+    "minimum": 80,
+    "target": 95
+  },
+  "autofix": {
+    "enabled": true,
+    "claude": false
+  }
+}

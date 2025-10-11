@@ -1,0 +1,14 @@
+src/
+tests/
+examples/
+tsconfig.json
+.git
+.github
+*.test.ts
+*.spec.ts
+.DS_Store
+node_modules/
+coverage/
+.vscode/
+.idea/
+*.log

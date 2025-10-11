@@ -1,0 +1,60 @@
+name: Code Health Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Shrimp Health
+        run: npm install -g @shrimphealth/cli
+
+      - name: Activate License (optional - for Pro features)
+        if: ${{ secrets.SHRIMP_LICENSE_KEY }}
+        run: shrimp activate ${{ secrets.SHRIMP_LICENSE_KEY }} ${{ secrets.SHRIMP_EMAIL }}
+
+      - name: Run Health Check
+        run: shrimp check --threshold 80 --json > health-report.json
+
+      - name: Upload Health Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-report
+          path: health-report.json
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('health-report.json', 'utf8'));
+
+            const emoji = report.healthScore >= 90 ? '🌟' : report.healthScore >= 70 ? '👍' : '⚠️';
+            const comment = `## ${emoji} Code Health Check
+
+            **Health Score:** ${report.healthScore}/100
+
+            ${report.recommendations.length > 0 ? '### Recommendations\n' + report.recommendations.map(r => `- ${r}`).join('\n') : '✅ No recommendations'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: comment
+            });
