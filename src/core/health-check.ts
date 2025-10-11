@@ -57,9 +57,23 @@ export class CodebaseMaintenance {
   }
 
   async run(): Promise<MaintenanceResult> {
-    console.log('🦐 Shrimp Codebase Health Check (Claude-Paired) v4.0');
+    const banner = `
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║   ███████╗██╗  ██╗██████╗ ██╗███╗   ███╗██████╗                      ║
+║   ██╔════╝██║  ██║██╔══██╗██║████╗ ████║██╔══██╗                     ║
+║   ███████╗███████║██████╔╝██║██╔████╔██║██████╔╝                     ║
+║   ╚════██║██╔══██║██╔══██╗██║██║╚██╔╝██║██╔═══╝                      ║
+║   ███████║██║  ██║██║  ██║██║██║ ╚═╝ ██║██║                          ║
+║   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝                          ║
+║                                                                       ║
+║              Codebase Health Check v4.0                               ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+    `;
+    console.log(banner);
     console.log(
-      '🚀 Enhanced: Bug Detection • Performance Analysis • Code Consistency • Import Optimization • Next.js Best Practices\n'
+      '[ENHANCED] Bug Detection | Performance Analysis | Code Consistency | Import Optimization | Next.js Best Practices\n'
     );
 
     const startTime = Date.now();
@@ -70,11 +84,11 @@ export class CodebaseMaintenance {
 
       const summary = `Health Check completed in ${duration}ms - Score: ${healthScore}/100`;
 
-      console.log(`\n✅ ${summary}`);
+      console.log(`\n[OK] ${summary}`);
 
       if (this.recommendations.length > 0) {
-        console.log('\n📋 Recommendations:');
-        this.recommendations.forEach((rec) => console.log(`  • ${rec}`));
+        console.log('\n[RECOMMENDATIONS]:');
+        this.recommendations.forEach((rec) => console.log(`  - ${rec}`));
       }
 
       return {
@@ -130,7 +144,7 @@ export class CodebaseMaintenance {
   }
 
   private async checkForTodoComments(): Promise<number> {
-    console.log('📝 Scanning for TODO/FIXME comments...');
+    console.log('[SCAN] Scanning for TODO/FIXME comments...');
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -168,16 +182,16 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const todoCount = this.details?.todoComments.length || 0;
       this.recommendations.push(`Address ${todoCount} TODO/FIXME comments`);
-      console.log(`  ⚠️  Found ${todoCount} TODO/FIXME comments`);
+      console.log(`  [!] Found ${todoCount} TODO/FIXME comments`);
     } else {
-      console.log('  ✅ No outstanding TODO comments found');
+      console.log('  [OK] No outstanding TODO comments found');
     }
 
     return Math.min(issues, 8); // Reduced penalty cap
   }
 
   private async checkForOutdatedPatterns(): Promise<number> {
-    console.log('🕰️  Checking for outdated patterns...');
+    console.log('[SCAN] Checking for outdated patterns...');
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -225,16 +239,16 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const outdatedCount = this.details?.outdatedComments.length || 0;
       this.recommendations.push(`Modernize ${outdatedCount} outdated code patterns`);
-      console.log(`  ⚠️  Found ${outdatedCount} outdated patterns`);
+      console.log(`  [!] Found ${outdatedCount} outdated patterns`);
     } else {
-      console.log('  ✅ Code patterns look modern');
+      console.log('  [OK] Code patterns look modern');
     }
 
     return Math.min(issues, 6); // Reduced penalty cap
   }
 
   private async checkNamingConsistency(): Promise<number> {
-    console.log('🏷️  Checking naming consistency...');
+    console.log('[SCAN] Checking naming consistency...');
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -279,9 +293,9 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const inconsistentCount = this.details?.namingInconsistencies.length || 0;
       this.recommendations.push(`Fix ${inconsistentCount} naming inconsistencies`);
-      console.log(`  ⚠️  Found ${inconsistentCount} naming inconsistencies`);
+      console.log(`  [!] Found ${inconsistentCount} naming inconsistencies`);
     } else {
-      console.log('  ✅ Naming conventions look consistent');
+      console.log('  [OK] Naming conventions look consistent');
     }
 
     return Math.min(issues, 4); // Reduced penalty cap

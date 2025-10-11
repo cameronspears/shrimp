@@ -94,10 +94,10 @@ export class AutoFixer {
     // Write fixed content back to file
     if (result.fixesApplied > 0 && !this.dryRun) {
       await fs.writeFile(filePath, fixedContent, 'utf-8');
-      console.log(`  ✅ Fixed ${result.fixesApplied} issues in ${path.basename(filePath)}`);
+      console.log(`  [OK] Fixed ${result.fixesApplied} issues in ${path.basename(filePath)}`);
     } else if (result.fixesApplied > 0) {
       console.log(
-        `  🔍 [DRY RUN] Would fix ${result.fixesApplied} issues in ${path.basename(filePath)}`
+        `  [DRY RUN] Would fix ${result.fixesApplied} issues in ${path.basename(filePath)}`
       );
     }
 

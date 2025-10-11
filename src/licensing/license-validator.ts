@@ -63,7 +63,7 @@ export class LicenseValidator {
       config.set('email', email);
       config.set('activatedAt', Date.now());
 
-      console.log('✅ License activated successfully!');
+      console.log('[OK] License activated successfully!');
       return true;
     } catch (error) {
       console.error('Failed to activate license:', error);

@@ -42,7 +42,7 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
 
   // Only skip if score is excellent (>95) AND there are no recommendations
   if (!result.details || (result.healthScore > 95 && result.recommendations.length === 0)) {
-    console.log('✅ Health score is excellent, no Claude intervention needed');
+    console.log('[OK] Health score is excellent, no Claude intervention needed');
     return;
   }
 
@@ -75,7 +75,7 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
       claudeProcess.on('close', (code) => {
         clearTimeout(timeout);
         if (code === 0) {
-          console.log('\n✅ Claude cleanup session completed');
+          console.log('\n[OK] Claude cleanup session completed');
         } else if (code !== null) {
           console.log(`\n⚠️ Claude exited with code ${code}`);
         }
@@ -242,7 +242,7 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
     '• Maintain existing interfaces and exports',
     '• Keep the same code structure and architecture',
     '',
-    '✅ VERIFICATION REQUIRED:',
+    '[OK] VERIFICATION REQUIRED:',
     ...context.verificationSteps.map((step) => `  • ${step}`),
     '',
     '🧠 SMART APPROACH:',

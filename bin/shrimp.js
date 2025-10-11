@@ -6,11 +6,26 @@ import ora from 'ora';
 import boxen from 'boxen';
 import { ShrimpHealth } from '../dist/index.js';
 
+const SHRIMP_LOGO = `
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║   ███████╗██╗  ██╗██████╗ ██╗███╗   ███╗██████╗                      ║
+║   ██╔════╝██║  ██║██╔══██╗██║████╗ ████║██╔══██╗                     ║
+║   ███████╗███████║██████╔╝██║██╔████╔██║██████╔╝                     ║
+║   ╚════██║██╔══██║██╔══██╗██║██║╚██╔╝██║██╔═══╝                      ║
+║   ███████║██║  ██║██║  ██║██║██║ ╚═╝ ██║██║                          ║
+║   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝                          ║
+║                                                                       ║
+║              AI-Powered Code Health Monitoring                        ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+`;
+
 const program = new Command();
 
 program
   .name('shrimp')
-  .description('🦐 AI-powered code health monitoring with automated fixes')
+  .description('AI-powered code health monitoring with automated fixes')
   .version('1.0.0');
 
 // Check command
@@ -41,7 +56,7 @@ program
       const threshold = parseInt(options.threshold, 10);
       if (result.healthScore < threshold) {
         console.log(
-          chalk.red(`\n❌ Health score ${result.healthScore} is below threshold ${threshold}`)
+          chalk.red(`\n[FAIL] Health score ${result.healthScore} is below threshold ${threshold}`)
         );
         process.exit(1);
       }
@@ -75,7 +90,7 @@ program
           console.log(
             boxen(
               chalk.yellow(
-                '⚠️  Claude AI integration is a Pro feature\n\n' +
+                '[!] Claude AI integration is a Pro feature\n\n' +
                   'Upgrade to Pro for $6/month:\n' +
                   chalk.cyan('https://shrimphealth.com/pricing')
               ),
@@ -90,13 +105,13 @@ program
       spinner.stop();
 
       if (result.success) {
-        console.log(chalk.green(`\n✅ ${result.summary}`));
+        console.log(chalk.green(`\n[OK] ${result.summary}`));
         if (result.recommendations.length > 0) {
-          console.log(chalk.yellow('\n📋 Recommendations:'));
-          result.recommendations.forEach((rec) => console.log(`  • ${rec}`));
+          console.log(chalk.yellow('\n[RECOMMENDATIONS]:'));
+          result.recommendations.forEach((rec) => console.log(`  - ${rec}`));
         }
       } else {
-        console.log(chalk.red(`\n❌ ${result.summary}`));
+        console.log(chalk.red(`\n[FAIL] ${result.summary}`));
       }
 
       process.exit(0);
@@ -126,7 +141,7 @@ program
         const license = await shrimp.getLicense();
         console.log(
           boxen(
-            chalk.green('🎉 License activated successfully!\n\n') +
+            chalk.green('[SUCCESS] License activated!\n\n') +
               `Tier: ${chalk.bold(license.tier.toUpperCase())}\n` +
               `Email: ${email}\n\n` +
               chalk.dim('You now have access to all Pro features'),
@@ -154,9 +169,10 @@ program
       const license = await shrimp.getLicense();
       const stats = shrimp.getStats();
 
+      console.log(chalk.cyan(SHRIMP_LOGO));
       console.log(
         boxen(
-          chalk.bold('🦐 Shrimp Health Status\n\n') +
+          chalk.bold('STATUS\n\n') +
             `License: ${chalk.bold(license.tier.toUpperCase())}\n` +
             `Checks this month: ${stats.checksThisMonth}${license.tier === 'free' ? `/${license.features.maxChecksPerMonth}` : ' (unlimited)'}\n` +
             `Total checks: ${stats.totalChecks}\n` +
@@ -176,7 +192,7 @@ program
   .command('install-hooks')
   .description('Install git pre-commit hooks')
   .action(async () => {
-    console.log(chalk.yellow('\n📝 To install git hooks, add to your .husky/pre-commit:\n'));
+    console.log(chalk.yellow('\n[HOOKS] To install git hooks, add to your .husky/pre-commit:\n'));
     console.log(chalk.cyan('  shrimp check --threshold 80\n'));
     console.log(chalk.dim('Or manually create the hook with:\n'));
     console.log(chalk.gray('  npx husky add .husky/pre-commit "shrimp check --threshold 80"'));
@@ -195,53 +211,58 @@ function displayHealthResults(result) {
           ? 'orange'
           : 'red';
 
-  const emoji =
+  const indicator =
     result.healthScore >= 90
-      ? '🌟'
+      ? '[★★★★★]'
       : result.healthScore >= 70
-        ? '👍'
+        ? '[★★★★☆]'
         : result.healthScore >= 50
-          ? '⚠️'
-          : '🚨';
+          ? '[★★★☆☆]'
+          : '[★★☆☆☆]';
 
+  console.log(chalk.cyan(SHRIMP_LOGO));
   console.log(
     boxen(
-      chalk.bold('🦐 Shrimp Health Check\n\n') +
-        `${emoji} Health Score: ${chalk[scoreColor](result.healthScore + '/100')}\n` +
+      chalk.bold('HEALTH CHECK RESULTS\n\n') +
+        `${indicator} Health Score: ${chalk[scoreColor](result.healthScore + '/100')}\n` +
         chalk.dim(result.summary),
       { padding: 1, margin: 1, borderColor: scoreColor }
     )
   );
 
   if (result.recommendations && result.recommendations.length > 0) {
-    console.log(chalk.yellow('\n📋 Recommendations:'));
-    result.recommendations.forEach((rec) => console.log(`  • ${rec}`));
+    console.log(chalk.yellow('\n╔═══════════════════════════════════════╗'));
+    console.log(chalk.yellow('║       RECOMMENDATIONS                 ║'));
+    console.log(chalk.yellow('╚═══════════════════════════════════════╝\n'));
+    result.recommendations.forEach((rec) => console.log(`  » ${rec}`));
   }
 
   // Show issue breakdown
   if (result.details) {
-    console.log(chalk.cyan('\n📊 Issue Breakdown:'));
+    console.log(chalk.cyan('\n╔═══════════════════════════════════════╗'));
+    console.log(chalk.cyan('║       ISSUE BREAKDOWN                 ║'));
+    console.log(chalk.cyan('╚═══════════════════════════════════════╝\n'));
 
     const issues = [
-      { name: 'Bugs', count: result.details.bugIssues?.length || 0, emoji: '🐛' },
+      { name: 'Bugs', count: result.details.bugIssues?.length || 0, icon: '[BUG]' },
       {
         name: 'Performance',
         count: result.details.performanceIssues?.length || 0,
-        emoji: '⚡',
+        icon: '[PERF]',
       },
-      { name: 'Imports', count: result.details.importIssues?.length || 0, emoji: '📦' },
+      { name: 'Imports', count: result.details.importIssues?.length || 0, icon: '[IMPORT]' },
       {
         name: 'Consistency',
         count: result.details.consistencyIssues?.length || 0,
-        emoji: '🎯',
+        icon: '[STYLE]',
       },
-      { name: 'Debug statements', count: result.details.debugStatements?.length || 0, emoji: '🔍' },
-      { name: 'Large files', count: result.details.largeFiles?.length || 0, emoji: '📏' },
+      { name: 'Debug statements', count: result.details.debugStatements?.length || 0, icon: '[DEBUG]' },
+      { name: 'Large files', count: result.details.largeFiles?.length || 0, icon: '[SIZE]' },
     ];
 
-    issues.forEach(({ name, count, emoji }) => {
+    issues.forEach(({ name, count, icon }) => {
       if (count > 0) {
-        console.log(`  ${emoji} ${name}: ${chalk.yellow(count)}`);
+        console.log(`  ${icon} ${name}: ${chalk.yellow(count)}`);
       }
     });
   }
