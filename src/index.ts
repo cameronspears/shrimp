@@ -9,7 +9,8 @@ import { UsageTracker } from './licensing/usage-tracker.js';
 
 export { CodebaseMaintenance } from './core/health-check.js';
 export { ShrimpChecks } from './core/health-analyzer.js';
-export { AutoFixer, type AutoFixResult } from './core/auto-fixer.js';
+export { AutoFixer, type AutoFixResult, type FixWithConfidence } from './core/auto-fixer.js';
+export { FileWatcher, getWatcherInstance, setWatcherInstance, clearWatcherInstance, type WatcherStatus, type WatcherIssue } from './core/file-watcher.js';
 export { invokeClaude } from './integrations/claude-integration.js';
 export { LicenseValidator } from './licensing/license-validator.js';
 export { UsageTracker } from './licensing/usage-tracker.js';

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "shrimp-health": {
+      "command": "node",
+      "args": [
+        "/REPLACE/WITH/YOUR/PATH/shrimp-health/mcp-server/build/index.js"
+      ]
+    }
+  }
+}

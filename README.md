@@ -226,6 +226,42 @@ Claude will:
 3. Apply fixes while maintaining your code style
 4. Run verification checks
 
+### Claude Code (MCP) Integration
+
+**NEW: Use Shrimp directly inside Claude Code conversations!**
+
+Shrimp includes an MCP (Model Context Protocol) server that lets Claude Code run health checks and apply fixes automatically during your conversations.
+
+**Quick Setup:**
+
+```bash
+# Build the MCP server
+cd mcp-server
+bun install && bun run build
+
+# Add to Claude Code config (~/.config/Claude/claude_desktop_config.json)
+{
+  "mcpServers": {
+    "shrimp-health": {
+      "command": "node",
+      "args": ["/full/path/to/shrimp-health/mcp-server/build/index.js"]
+    }
+  }
+}
+```
+
+**Then restart Claude Code and try:**
+
+> "Run a health check on this project"
+
+Claude Code will automatically use Shrimp's tools! See [mcp-server/SETUP.md](mcp-server/SETUP.md) for full instructions.
+
+**Available MCP Tools:**
+- `shrimp_check` - Run health checks
+- `shrimp_fix` - Auto-fix issues
+- `shrimp_status` - Get quick status
+- `shrimp_explain` - Explain issue types
+
 ## 📈 Health Score
 
 Your health score (0-100) is calculated from:

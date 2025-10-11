@@ -1,0 +1,31 @@
+{
+  "name": "@shrimphealth/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Shrimp Health - AI-powered code health monitoring",
+  "type": "module",
+  "bin": {
+    "shrimp-mcp": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "dev": "tsc --watch",
+    "start": "node build/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "shrimp",
+    "code-health",
+    "claude-code"
+  ],
+  "author": "Cam <contact@gielinorgains.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}
