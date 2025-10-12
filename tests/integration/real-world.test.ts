@@ -23,13 +23,14 @@ interface BaselineData {
   version: string;
 }
 
-describe('Real World Integration: gielinor-gains', () => {
+describe.skipIf(!fs.existsSync(GIELINOR_GAINS_PATH))('Real World Integration: gielinor-gains', () => {
   let allTsFiles: string[];
 
   beforeAll(() => {
-    // Verify the project exists
+    // Skip if project doesn't exist (e.g., in CI)
     if (!fs.existsSync(GIELINOR_GAINS_PATH)) {
-      throw new Error(`gielinor-gains project not found at ${GIELINOR_GAINS_PATH}`);
+      console.log(`Skipping gielinor-gains tests - project not found at ${GIELINOR_GAINS_PATH}`);
+      return;
     }
 
     // Find all TypeScript files

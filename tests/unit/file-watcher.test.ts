@@ -233,6 +233,9 @@ describe('FileWatcher', () => {
       watcher = new FileWatcher(tempDir);
       await watcher.start();
 
+      // Wait for watcher to be fully initialized
+      await new Promise(resolve => setTimeout(resolve, 600));
+
       // Create file with issues
       const testFile = path.join(tempDir, 'issues.ts');
       await fs.writeFile(testFile, `
@@ -244,8 +247,8 @@ try {
 }
 `, 'utf-8');
 
-      // Wait for processing
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Wait for processing (awaitWriteFinish 200ms + debounce 500ms + processing)
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       const status = watcher.getStatus();
       expect(status.issueCount).toBeGreaterThan(0);
