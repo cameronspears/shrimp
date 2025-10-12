@@ -9,10 +9,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "cameronspears"
-    assignees:
-      - "cameronspears"
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
@@ -42,10 +38,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
-    reviewers:
-      - "cameronspears"
-    assignees:
-      - "cameronspears"
     commit-message:
       prefix: "chore(mcp-deps)"
       prefix-development: "chore(mcp-deps-dev)"
@@ -67,10 +59,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "cameronspears"
-    assignees:
-      - "cameronspears"
     commit-message:
       prefix: "chore(actions)"
       include: "scope"
