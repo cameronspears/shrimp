@@ -75,17 +75,6 @@ jobs:
       - name: Comment on major version PR
         if: steps.decision.outputs.should_merge == 'false'
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body "⚠️ **Manual review required**
-
-This PR contains a major version update which may include breaking changes.
-
-Please review the changelog and test locally before merging:
-\`\`\`bash
-gh pr checkout ${{ github.event.pull_request.number }}
-bun install
-bun test
-\`\`\`
-
-If everything looks good, approve and merge manually."
+          gh pr comment "${{ github.event.pull_request.number }}" --body "**Manual review required** - This PR contains a major version update which may include breaking changes. Please review the changelog and test locally before merging."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
