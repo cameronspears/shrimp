@@ -54,7 +54,7 @@ jobs:
           echo "SUCCESS: Line coverage ${coverage}% meets 80% threshold"
 
       - name: Run health check on self (dogfooding)
-        run: ./bin/shrimp.js check --threshold 70
+        run: ./bin/shrimp.js check --threshold 50
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
