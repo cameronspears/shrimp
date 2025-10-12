@@ -17,9 +17,24 @@ describe('FileWatcher', () => {
   });
 
   afterEach(async () => {
+    // Stop singleton instance if exists
+    const singleton = getWatcherInstance();
+    if (singleton) {
+      try {
+        await singleton.stop();
+      } catch (error) {
+        // Ignore stop errors
+      }
+      clearWatcherInstance();
+    }
+
     // Stop watcher if running
     if (watcher) {
-      await watcher.stop();
+      try {
+        await watcher.stop();
+      } catch (error) {
+        // Ignore stop errors
+      }
       watcher = null;
     }
 
@@ -578,18 +593,18 @@ try { x(); } catch (e) {}
     test('should store instance with setWatcherInstance', () => {
       clearWatcherInstance();
 
-      const newWatcher = new FileWatcher(tempDir);
-      setWatcherInstance(newWatcher);
+      watcher = new FileWatcher(tempDir);
+      setWatcherInstance(watcher);
 
       const retrieved = getWatcherInstance();
-      expect(retrieved).toBe(newWatcher);
+      expect(retrieved).toBe(watcher);
     });
 
     test('should reset with clearWatcherInstance', () => {
-      const newWatcher = new FileWatcher(tempDir);
-      setWatcherInstance(newWatcher);
+      watcher = new FileWatcher(tempDir);
+      setWatcherInstance(watcher);
 
-      expect(getWatcherInstance()).toBe(newWatcher);
+      expect(getWatcherInstance()).toBe(watcher);
 
       clearWatcherInstance();
 
