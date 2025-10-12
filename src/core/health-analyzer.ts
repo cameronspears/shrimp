@@ -138,7 +138,7 @@ export class ShrimpChecks {
                 await fs.writeFile(file, updatedContent, 'utf-8');
                 if (!this.silent) {
                   console.log(
-                    `  🔧 Removed ${debugLines.length} console.log statements from ${file}`
+                    `  [FIX] Removed ${debugLines.length} console.log statements from ${file}`
                   );
                 }
               }
@@ -251,7 +251,7 @@ export class ShrimpChecks {
                 try {
                   await fs.rmdir(dir);
                   if (!this.silent) {
-                    console.log(`  🔧 Removed empty directory: ${dir}`);
+                    console.log(`  [FIX] Removed empty directory: ${dir}`);
                   }
                 } catch (error) {
                   if (!this.silent) {

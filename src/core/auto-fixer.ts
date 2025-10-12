@@ -44,7 +44,7 @@ export class AutoFixer {
    * Fix all auto-fixable issues in the codebase
    */
   async fixAll(issues: any): Promise<AutoFixResult[]> {
-    console.log('🔧 Starting aggressive auto-fix mode...');
+    console.log('[FIX] Starting aggressive auto-fix mode...');
 
     // Group issues by file
     const fileIssues = this.groupIssuesByFile(issues);
@@ -58,7 +58,7 @@ export class AutoFixer {
           this.results.push(result);
         }
       } catch (error) {
-        console.error(`  ❌ Failed to fix ${file}:`, error);
+        console.error(`  [ERROR] Failed to fix ${file}:`, error);
       }
     }
 

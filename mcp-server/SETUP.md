@@ -249,4 +249,4 @@ Once Shrimp MCP is working:
 - **Discord:** [Join our community](#)
 - **Email:** support@shrimphealth.com
 
-Happy shipping! 🦐
+Happy shipping!

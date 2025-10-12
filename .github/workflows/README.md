@@ -29,9 +29,9 @@ This directory contains automated workflows for Shrimp Health.
 **Trigger:** Dependabot PRs
 
 **What it does:**
-- ✅ Auto-approves and merges: security updates, dev deps, patch/minor versions
-- ⚠️ Flags major version updates for manual review
-- 🤖 Fully automated - no manual intervention needed!
+- [OK] Auto-approves and merges: security updates, dev deps, patch/minor versions
+- [WARN] Flags major version updates for manual review
+- [AUTO] Fully automated - no manual intervention needed!
 
 **Safe update criteria:**
 - Security updates (always merge)

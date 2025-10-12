@@ -95,17 +95,17 @@ Real-time monitoring via chokidar:
 ### Current Status: **Prototype** (Week 0)
 
 **Completed:**
-- ✅ Core architecture
-- ✅ 6 detectors (bug, performance, import, consistency, Next.js, WCAG)
-- ✅ Auto-fixer with confidence scoring
-- ✅ File watcher for real-time monitoring
-- ✅ MCP server integration
-- ✅ Auto-fixer tests (17 tests)
+- [X] Core architecture
+- [X] 6 detectors (bug, performance, import, consistency, Next.js, WCAG)
+- [X] Auto-fixer with confidence scoring
+- [X] File watcher for real-time monitoring
+- [X] MCP server integration
+- [X] Auto-fixer tests (17 tests)
 
 **In Progress:**
-- 🔄 Test coverage (17 tests → 300+ tests target)
-- 🔄 False positive validation
-- 🔄 CI/CD pipeline
+- [ ] Test coverage (17 tests → 300+ tests target)
+- [ ] False positive validation
+- [ ] CI/CD pipeline
 
 ### Week 1-2: Test Foundation
 **Priority: BugDetectorAST tests (this is the core value)**
@@ -168,7 +168,7 @@ bun test --coverage  # With coverage report
 
 ## Dos & Don'ts for Claude Code
 
-### ✅ DO
+### DO
 
 1. **Write comprehensive tests** - We need 300+ tests to be production-ready. Always write tests for new detectors or bug fixes.
 
@@ -190,7 +190,7 @@ bun test --coverage  # With coverage report
 
 10. **Test for performance** - Every detector should run in <50ms on typical files. Profile and optimize.
 
-### ❌ DON'T
+### DON'T
 
 1. **Don't add generic linting rules** - We're not ESLint. Only add checks that help Claude Code users with Next.js/Vercel/WCAG.
 
@@ -259,12 +259,12 @@ async checkNewFeature(): Promise<number> {
 ### Detector Testing Checklist
 
 For every detector, test:
-- ✅ True positives (finds real issues)
-- ✅ True negatives (doesn't flag correct code)
-- ✅ False positive cases (common patterns that look wrong but aren't)
-- ✅ Edge cases (empty files, malformed syntax, etc.)
-- ✅ Performance (should handle 1000+ line files quickly)
-- ✅ Severity accuracy (is "error" really an error?)
+- [X] True positives (finds real issues)
+- [X] True negatives (doesn't flag correct code)
+- [X] False positive cases (common patterns that look wrong but aren't)
+- [X] Edge cases (empty files, malformed syntax, etc.)
+- [X] Performance (should handle 1000+ line files quickly)
+- [X] Severity accuracy (is "error" really an error?)
 
 ## File Structure Reference
 
@@ -298,10 +298,10 @@ shrimp-health/
 │   └── index.ts                # Public API
 ├── tests/
 │   ├── unit/
-│   │   ├── auto-fixer.test.ts       # ✅ 17 tests
-│   │   └── bug-detector-ast.test.ts # ✅ 1 test
+│   │   ├── auto-fixer.test.ts       # [X] 17 tests
+│   │   └── bug-detector-ast.test.ts # [X] 1 test
 │   └── integration/
-│       └── real-world.test.ts       # ✅ 1 test (gielinor-gains)
+│       └── real-world.test.ts       # [X] 1 test (gielinor-gains)
 ├── mcp-server/              # MCP server for Claude Code
 │   ├── src/
 │   │   └── index.ts         # 8 MCP tools

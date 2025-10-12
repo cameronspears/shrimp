@@ -38,7 +38,7 @@ interface CodebaseContext {
 }
 
 export async function invokeClaude(result: MaintenanceResult): Promise<void> {
-  console.log('\n🤖 Invoking Claude for automated cleanup...');
+  console.log('\n[AI] Invoking Claude for automated cleanup...');
 
   // Only skip if score is excellent (>95) AND there are no recommendations
   if (!result.details || (result.healthScore > 95 && result.recommendations.length === 0)) {
@@ -46,7 +46,7 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
     return;
   }
 
-  console.log('🔍 Gathering codebase context for Claude...');
+  console.log('[INFO] Gathering codebase context for Claude...');
   const codebaseContext = await gatherCodebaseContext(result);
   const prompt = generateClaudePrompt(result, codebaseContext);
 
@@ -54,8 +54,8 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
     const promptFile = path.join(process.cwd(), '.shrimp-prompt.md');
     await fs.writeFile(promptFile, prompt);
 
-    console.log(`💡 Created cleanup prompt at: ${promptFile}`);
-    console.log('🤖 Starting Claude session with the prompt...');
+    console.log(`[INFO] Created cleanup prompt at: ${promptFile}`);
+    console.log('[AI] Starting Claude session with the prompt...');
     console.log('');
 
     const claudeProcess = spawn('claude', [promptFile], {
@@ -66,8 +66,8 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
 
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        console.log('⚠️ Claude CLI not available or taking too long');
-        console.log('💡 You can manually run: claude < ' + promptFile);
+        console.log('[WARN] Claude CLI not available or taking too long');
+        console.log('[INFO] You can manually run: claude < ' + promptFile);
         claudeProcess.kill('SIGTERM');
         resolve();
       }, 5000);
@@ -77,7 +77,7 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
         if (code === 0) {
           console.log('\n[OK] Claude cleanup session completed');
         } else if (code !== null) {
-          console.log(`\n⚠️ Claude exited with code ${code}`);
+          console.log(`\n[WARN] Claude exited with code ${code}`);
         }
         resolve();
       });
@@ -85,9 +85,9 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
       claudeProcess.on('error', () => {
         clearTimeout(timeout);
         console.log(
-          '\n💡 Claude CLI not available - install with: npm install -g @anthropic-ai/claude-cli'
+          '\n[INFO] Claude CLI not available - install with: npm install -g @anthropic-ai/claude-cli'
         );
-        console.log(`💡 Or run manually: claude < ${promptFile}`);
+        console.log(`[INFO] Or run manually: claude < ${promptFile}`);
         resolve();
       });
 
@@ -96,30 +96,30 @@ export async function invokeClaude(result: MaintenanceResult): Promise<void> {
       });
     });
   } catch (error) {
-    console.log('\n⚠️ Claude automation failed:', error);
-    console.log('💡 You can still use the recommendations above manually');
+    console.log('\n[WARN] Claude automation failed:', error);
+    console.log('[INFO] You can still use the recommendations above manually');
   }
 }
 
 function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContext): string {
   const parts = [
-    '🦐 Shrimp Codebase Cleanup - Smart Context-Aware Maintenance',
+    'Shrimp Codebase Cleanup - Smart Context-Aware Maintenance',
     '',
-    '🎯 MISSION: Improve code maintainability without breaking functionality or UIs',
+    'MISSION: Improve code maintainability without breaking functionality or UIs',
     '',
-    `📊 Health Score: ${result.healthScore}/100`,
+    `Health Score: ${result.healthScore}/100`,
     '',
-    '⚡ TECH STACK: ' + context.techStack,
+    'TECH STACK: ' + context.techStack,
     '',
-    '📖 PROJECT CONVENTIONS:',
-    ...context.conventions.map((c) => `  • ${c}`),
+    'PROJECT CONVENTIONS:',
+    ...context.conventions.map((c) => `  - ${c}`),
     '',
   ];
 
   if (context.fileContexts.length > 0) {
-    parts.push('🔍 FILE CONTEXTS:');
+    parts.push('FILE CONTEXTS:');
     context.fileContexts.forEach(({ file, purpose, keyPatterns }) => {
-      parts.push(`  📄 ${file}`);
+      parts.push(`  ${file}`);
       parts.push(`     Purpose: ${purpose}`);
       if (keyPatterns.length > 0) {
         parts.push(`     Patterns: ${keyPatterns.join(', ')}`);
@@ -129,33 +129,33 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
   }
 
   if (result.details?.debugStatements.length) {
-    parts.push('🐛 Debug statements to remove:');
+    parts.push('Debug statements to remove:');
     result.details.debugStatements.forEach(({ file, line, content }) => {
-      parts.push(`  • ${file}:${line} - ${content}`);
+      parts.push(`  - ${file}:${line} - ${content}`);
     });
     parts.push('');
   }
 
   if (result.details?.emptyDirectories.length) {
-    parts.push('📁 Empty directories to remove:');
+    parts.push('Empty directories to remove:');
     result.details.emptyDirectories.forEach((dir) => {
-      parts.push(`  • ${dir}`);
+      parts.push(`  - ${dir}`);
     });
     parts.push('');
   }
 
   if (result.details?.largeFiles.length) {
-    parts.push('📏 Large files that might benefit from refactoring:');
+    parts.push('Large files that might benefit from refactoring:');
     result.details.largeFiles.forEach(({ file, lines }) => {
-      parts.push(`  • ${file} (${lines} lines)`);
+      parts.push(`  - ${file} (${lines} lines)`);
     });
     parts.push('');
   }
 
   if (result.details?.complexFunctions.length) {
-    parts.push('🧠 Complex functions to consider simplifying:');
+    parts.push('Complex functions to consider simplifying:');
     result.details.complexFunctions.forEach(({ file, function: func, complexity }) => {
-      parts.push(`  • ${file} - ${func}() (complexity: ${complexity})`);
+      parts.push(`  - ${file} - ${func}() (complexity: ${complexity})`);
     });
     parts.push('');
   }
@@ -166,18 +166,18 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
     const warnings = result.details.bugIssues.filter((i: any) => i.severity === 'warning');
 
     if (critical.length > 0) {
-      parts.push('🚨 CRITICAL BUGS TO FIX:');
+      parts.push('CRITICAL BUGS TO FIX:');
       critical.slice(0, 10).forEach((issue: any) => {
-        parts.push(`  • ${issue.file}:${issue.line} - ${issue.message}`);
-        parts.push(`    💡 ${issue.suggestion}`);
+        parts.push(`  - ${issue.file}:${issue.line} - ${issue.message}`);
+        parts.push(`    Suggestion: ${issue.suggestion}`);
       });
       parts.push('');
     }
 
     if (warnings.length > 0) {
-      parts.push('⚠️  Potential Bugs:');
+      parts.push('Potential Bugs:');
       warnings.slice(0, 10).forEach((issue: any) => {
-        parts.push(`  • ${issue.file}:${issue.line} - ${issue.message}`);
+        parts.push(`  - ${issue.file}:${issue.line} - ${issue.message}`);
       });
       parts.push('');
     }
@@ -189,19 +189,19 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
     const moderate = result.details.performanceIssues.filter((i: any) => i.severity === 'moderate');
 
     if (critical.length > 0) {
-      parts.push('⚡ CRITICAL PERFORMANCE ISSUES:');
+      parts.push('CRITICAL PERFORMANCE ISSUES:');
       critical.slice(0, 8).forEach((issue: any) => {
-        parts.push(`  • ${issue.file}:${issue.line} - ${issue.message}`);
-        parts.push(`    💡 ${issue.suggestion}`);
-        if (issue.impact) parts.push(`    📊 Impact: ${issue.impact}`);
+        parts.push(`  - ${issue.file}:${issue.line} - ${issue.message}`);
+        parts.push(`    Suggestion: ${issue.suggestion}`);
+        if (issue.impact) parts.push(`    Impact: ${issue.impact}`);
       });
       parts.push('');
     }
 
     if (moderate.length > 0) {
-      parts.push('📊 Performance Optimizations:');
+      parts.push('Performance Optimizations:');
       moderate.slice(0, 8).forEach((issue: any) => {
-        parts.push(`  • ${issue.file}:${issue.line} - ${issue.message}`);
+        parts.push(`  - ${issue.file}:${issue.line} - ${issue.message}`);
       });
       parts.push('');
     }
@@ -209,49 +209,49 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
 
   // NEW: Import issues
   if (result.details?.importIssues?.length) {
-    parts.push('📦 Import Issues:');
+    parts.push('Import Issues:');
     result.details.importIssues.slice(0, 15).forEach((issue: any) => {
-      parts.push(`  • ${issue.file}:${issue.line} - ${issue.message}`);
-      parts.push(`    💡 ${issue.suggestion}`);
+      parts.push(`  - ${issue.file}:${issue.line} - ${issue.message}`);
+      parts.push(`    Suggestion: ${issue.suggestion}`);
     });
     parts.push('');
   }
 
   // NEW: Consistency issues
   if (result.details?.consistencyIssues?.length) {
-    parts.push('🎯 Code Consistency Issues:');
+    parts.push('Code Consistency Issues:');
     result.details.consistencyIssues.slice(0, 12).forEach((issue: any) => {
       const location = issue.line ? `${issue.file}:${issue.line}` : issue.file;
-      parts.push(`  • ${location} - ${issue.message}`);
-      parts.push(`    💡 ${issue.suggestion}`);
+      parts.push(`  - ${location} - ${issue.message}`);
+      parts.push(`    Suggestion: ${issue.suggestion}`);
     });
     parts.push('');
   }
 
   parts.push(
-    '🛠️ CLEANUP ACTIONS:',
-    '• Remove debug statements (console.log, debugger)',
-    '• Fix naming inconsistencies (maintain existing patterns)',
-    '• Clean up unused imports and dead code',
-    '• Simplify overly complex functions (without changing behavior)',
-    '• Remove empty directories',
+    'CLEANUP ACTIONS:',
+    '- Remove debug statements (console.log, debugger)',
+    '- Fix naming inconsistencies (maintain existing patterns)',
+    '- Clean up unused imports and dead code',
+    '- Simplify overly complex functions (without changing behavior)',
+    '- Remove empty directories',
     '',
-    '🚫 CONSTRAINTS:',
-    "• Don't break existing functionality",
-    "• Don't change UI appearance or behavior",
-    '• Maintain existing interfaces and exports',
-    '• Keep the same code structure and architecture',
+    'CONSTRAINTS:',
+    "- Don't break existing functionality",
+    "- Don't change UI appearance or behavior",
+    '- Maintain existing interfaces and exports',
+    '- Keep the same code structure and architecture',
     '',
     '[OK] VERIFICATION REQUIRED:',
-    ...context.verificationSteps.map((step) => `  • ${step}`),
+    ...context.verificationSteps.map((step) => `  - ${step}`),
     '',
-    '🧠 SMART APPROACH:',
-    '• Read the full context of each file before making changes',
-    '• Understand the purpose and dependencies',
-    '• Make conservative changes that clearly improve maintainability',
-    '• Test changes immediately and revert if anything breaks',
+    'SMART APPROACH:',
+    '- Read the full context of each file before making changes',
+    '- Understand the purpose and dependencies',
+    '- Make conservative changes that clearly improve maintainability',
+    '- Test changes immediately and revert if anything breaks',
     '',
-    '📝 ISSUES TO ADDRESS:'
+    'ISSUES TO ADDRESS:'
   );
 
   return parts.join('\n');
@@ -259,7 +259,7 @@ function generateClaudePrompt(result: MaintenanceResult, context: CodebaseContex
 
 async function gatherCodebaseContext(result: MaintenanceResult): Promise<CodebaseContext> {
   const context: CodebaseContext = {
-    techStack: 'Next.js 15 + TypeScript + Tailwind CSS + Shrimp 🦐',
+    techStack: 'Next.js 15 + TypeScript + Tailwind CSS + Shrimp',
     conventions: [],
     fileContexts: [],
     verificationSteps: ['pnpm type-check', 'pnpm lint', 'pnpm shrimp'],
@@ -351,25 +351,25 @@ function generateSafetyWarnings(file: string, content: string, purpose: string):
   const warnings: string[] = [];
 
   if (content.includes('className=') || content.includes('style=')) {
-    warnings.push('⚠️ Contains styling - preserve UI appearance');
+    warnings.push('[WARN] Contains styling - preserve UI appearance');
   }
 
   if (content.includes('jsx') || content.includes('tsx') || content.includes('return (')) {
     if (purpose.includes('component') || purpose.includes('page')) {
-      warnings.push('⚠️ UI component - maintain visual behavior');
+      warnings.push('[WARN] UI component - maintain visual behavior');
     }
   }
 
   if (file.includes('/api/') || content.includes('export async function')) {
-    warnings.push('⚠️ API endpoint - preserve functionality');
+    warnings.push('[WARN] API endpoint - preserve functionality');
   }
 
   if (content.includes('algorithm') || content.includes('calculate') || content.includes('score')) {
-    warnings.push('⚠️ Contains business logic - be very careful');
+    warnings.push('[WARN] Contains business logic - be very careful');
   }
 
   if (file.includes('config') || file.includes('.env') || content.includes('process.env')) {
-    warnings.push('⚠️ Configuration file - minimal changes only');
+    warnings.push('[WARN] Configuration file - minimal changes only');
   }
 
   return warnings;

@@ -106,7 +106,7 @@ export class CodebaseMaintenance {
       };
     } catch (error) {
       if (!this.silent) {
-        console.error('\n❌ Health check failed:', error);
+        console.error('\n[ERROR] Health check failed:', error);
       }
 
       return {
@@ -401,7 +401,7 @@ async function main() {
   }
 
   // Output Claude-friendly summary
-  console.log('\n📋 Claude Summary:');
+  console.log('\n[SUMMARY] Claude Summary:');
   console.log(`Health Score: ${result.healthScore}/100`);
   console.log(`Recommendations: ${result.recommendations.length}`);
   console.log(`Status: ${result.success ? 'OK' : 'Issues Found'}`);
@@ -410,10 +410,10 @@ async function main() {
   if (shouldInvokeClaude) {
     await invokeClaude(result);
   } else if (result.recommendations.length > 0) {
-    console.log('\n💡 Available options:');
-    console.log('  • `pnpm shrimp --fix` - Automatically fix simple issues');
-    console.log('  • `pnpm shrimp --claude` - Have Claude fix complex issues');
-    console.log('  • `pnpm shrimp --json` - Output machine-readable results');
+    console.log('\n[INFO] Available options:');
+    console.log('  - `pnpm shrimp --fix` - Automatically fix simple issues');
+    console.log('  - `pnpm shrimp --claude` - Have Claude fix complex issues');
+    console.log('  - `pnpm shrimp --json` - Output machine-readable results');
   }
 
   // Exit with appropriate code

@@ -1,4 +1,4 @@
-# 🦐 Shrimp Health
+# Shrimp Health
 
 > **AI-powered code health monitoring with automated fixes - 100% Open Source**
 
@@ -23,31 +23,31 @@ Shrimp Health is your **quality copilot** - specifically designed for Next.js pr
 
 **Not a replacement for ESLint** - Shrimp complements your linter by focusing on architecture, performance, and Next.js-specific patterns that traditional linters miss.
 
-## ✨ Features
+## Features
 
 ### Comprehensive Health Checks
-- 🐛 **Bug Detection** - Catch common bugs before they hit production
-- ⚡ **Performance Analysis** - Identify performance bottlenecks
-- 📦 **Import Optimization** - Clean up unused and disorganized imports
-- 🎯 **Code Consistency** - Enforce patterns across your codebase
-- 🧠 **Complexity Analysis** - Find overly complex functions
-- ♿ **Accessibility (WCAG 2.0)** - Ensure your UI is accessible
-- ⚛️ **Next.js Best Practices** - Framework-specific optimizations
+- **Bug Detection** - Catch common bugs before they hit production
+- **Performance Analysis** - Identify performance bottlenecks
+- **Import Optimization** - Clean up unused and disorganized imports
+- **Code Consistency** - Enforce patterns across your codebase
+- **Complexity Analysis** - Find overly complex functions
+- **Accessibility (WCAG 2.0)** - Ensure your UI is accessible
+- **Next.js Best Practices** - Framework-specific optimizations
 
 ### AI-Powered Auto-Fixing
-- 🤖 **Claude Integration** - Automatically invoke Claude to fix complex issues
-- 🔧 **Confidence-Scored Fixes** - Auto-fix with 0.0-1.0 confidence ratings
-- 📊 **Health Score** - Get a 0-100 score for your codebase health
-- 🎯 **Actionable Recommendations** - Know exactly what to improve
+- **Claude Integration** - Automatically invoke Claude to fix complex issues
+- **Confidence-Scored Fixes** - Auto-fix with 0.0-1.0 confidence ratings
+- **Health Score** - Get a 0-100 score for your codebase health
+- **Actionable Recommendations** - Know exactly what to improve
 
 ### Developer Experience
-- ⚡ **Lightning Fast** - 8ms per file average (under 50ms target)
-- 🪝 **Git Hooks** - Run automatically on every commit
-- 📈 **Real-time Watching** - Monitor health as you code (via MCP)
-- 🎨 **Beautiful CLI** - Clear, colorful output
-- 🧪 **537 Tests** - Comprehensive test coverage for reliability
+- **Lightning Fast** - 8ms per file average (under 50ms target)
+- **Git Hooks** - Run automatically on every commit
+- **Real-time Watching** - Monitor health as you code (via MCP)
+- **Beautiful CLI** - Clear, colorful output
+- **537 Tests** - Comprehensive test coverage for reliability
 
-## 📦 Installation
+## Installation
 
 ```bash
 # Global installation (recommended)
@@ -60,7 +60,7 @@ npx shrimp-health check
 npm install --save-dev shrimp-health
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Run health check
@@ -80,7 +80,7 @@ shrimp check --threshold 80 --json
 shrimp status
 ```
 
-## 📖 Usage
+## Usage
 
 ### Basic Health Check
 
@@ -90,13 +90,13 @@ shrimp check
 
 Output:
 ```
-🦐 Shrimp Codebase Health Check v4.0
-✅ Health Check completed in 87ms - Score: 92/100
+Shrimp Codebase Health Check v4.0
+[OK] Health Check completed in 87ms - Score: 92/100
 
-📋 Recommendations:
-  • Fix 2 critical bug(s)
-  • Remove 5 unused import(s)
-  • Address 3 Next.js warning(s)
+Recommendations:
+  - Fix 2 critical bug(s)
+  - Remove 5 unused import(s)
+  - Address 3 Next.js warning(s)
 ```
 
 ### Auto-Fix
@@ -136,7 +136,7 @@ shrimp check --threshold 85 || exit 1
     shrimp check --threshold 80 --json > health-report.json
 ```
 
-## 🔧 Configuration
+## Configuration
 
 Create `.shrimprc.json` in your project root:
 
@@ -167,7 +167,7 @@ Create `.shrimprc.json` in your project root:
 }
 ```
 
-## 📊 What Gets Checked
+## What Gets Checked
 
 ### Bug Detection
 - Empty catch blocks
@@ -206,7 +206,7 @@ Create `.shrimprc.json` in your project root:
 - Font optimization
 - Route best practices
 
-## 🤖 Claude Integration
+## Claude Integration
 
 Shrimp can automatically invoke Claude to fix complex issues:
 
@@ -224,7 +224,7 @@ Claude will:
 
 ### Claude Code (MCP) Integration
 
-**NEW: Use Shrimp directly inside Claude Code conversations!**
+Use Shrimp directly inside Claude Code conversations!
 
 Shrimp includes an MCP (Model Context Protocol) server that lets Claude Code run health checks and apply fixes automatically during your conversations.
 
@@ -261,7 +261,7 @@ Claude Code will automatically use Shrimp's tools! See [mcp-server/SETUP.md](mcp
 - `shrimp_watch_stop` - Stop file watching
 - `shrimp_get_live_status` - Get cached watcher status
 
-## 📈 Health Score
+## Health Score
 
 Your health score (0-100) is calculated from:
 - Bug severity and count (30%)
@@ -278,7 +278,7 @@ Points are deducted based on issue severity:
 - Consistency issues: -1pt per 3 issues (capped at 10pts)
 - Import issues: -0.5pts each (capped at 10pts)
 
-## 📊 Validation & Performance
+## Validation & Performance
 
 Shrimp Health has been validated against 5 real Next.js projects to ensure high precision and low false positive rates.
 
@@ -306,7 +306,7 @@ Target: <50ms per file ✓
 Memory usage: <200MB typical
 ```
 
-## 🛠️ API Usage
+## API Usage
 
 ```typescript
 import { ShrimpHealth } from 'shrimp-health';
@@ -321,7 +321,7 @@ console.log(`Health Score: ${result.healthScore}/100`);
 console.log(`Issues: ${result.totalIssues}`);
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here's how to get started:
 
@@ -356,23 +356,23 @@ cd mcp-server && bun install && bun run build
 - Follow TypeScript strict mode
 - Document all public APIs
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE)
 
-## 🔗 Links
+## Links
 
-- [GitHub Repository](https://github.com/cameronapak/shrimp-health)
+- [GitHub Repository](https://github.com/cameronspears/shrimp)
 - [Validation Results](tests/validation/real-world-results.md)
 - [Development Guide](CLAUDE.md)
 - [MCP Setup Guide](mcp-server/SETUP.md)
 
-## 💬 Support
+## Support
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/cameronapak/shrimp-health/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/cameronapak/shrimp-health/discussions)
-- 📖 **Documentation**: See [CLAUDE.md](CLAUDE.md) for detailed docs
+- **Bug Reports**: [GitHub Issues](https://github.com/cameronspears/shrimp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cameronspears/shrimp/discussions)
+- **Documentation**: See [CLAUDE.md](CLAUDE.md) for detailed docs
 
 ---
 
-Made with 🦐 by the open source community
+Made by the open source community

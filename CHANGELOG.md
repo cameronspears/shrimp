@@ -288,4 +288,4 @@ All previously Pro/Team features (Claude integration, advanced detectors, unlimi
 
 ---
 
-Made with care by the open source community 🦐
+Made with care by the open source community
