@@ -1,10 +1,11 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { BugDetector } from '../detectors/bug-detector.js';
+import { BugDetectorAST } from '../detectors/bug-detector-ast.js';
 import { ConsistencyDetector } from '../detectors/consistency-detector.js';
 import { PerformanceDetector } from '../detectors/performance-detector.js';
 import { ImportDetector } from '../detectors/import-detector.js';
 import { NextJSDetector } from '../detectors/nextjs-detector.js';
+import { logger } from '../utils/logger.js';
 
 interface MaintenanceResult {
   success: boolean;
@@ -58,8 +59,9 @@ export class ShrimpChecks {
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
+    logger.debug(`Analyzing ${files.length} files for dead code`);
 
-    for (const file of files.slice(0, 20)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
@@ -75,10 +77,17 @@ export class ShrimpChecks {
             unusedImports++;
           }
 
-          // Count debug statements (but allow them in scripts directory)
+          // Count debug statements (but allow them in scripts, bin, and user-facing CLI output)
+          // Only flag console.debug and console.log with debug-like patterns
+          const isDebugLog =
+            trimmed.startsWith('console.debug(') ||
+            (trimmed.startsWith('console.log(') &&
+             (trimmed.includes('[DEBUG]') || trimmed.includes('[TRACE]') || trimmed.includes('TODO:')));
+
           if (
-            (trimmed.startsWith('console.log(') || trimmed.startsWith('console.debug(')) &&
-            !file.includes('/scripts/')
+            isDebugLog &&
+            !file.includes('/scripts/') &&
+            !file.includes('/bin/')
           ) {
             debugStatements++;
           }
@@ -94,9 +103,13 @@ export class ShrimpChecks {
           const debugLines = lines
             .map((line, index) => ({ line: line.trim(), index: index + 1 }))
             .filter(
-              ({ line }) =>
-                (line.startsWith('console.log(') || line.startsWith('console.debug(')) &&
-                !file.includes('/scripts/')
+              ({ line }) => {
+                const isDebugLog =
+                  line.startsWith('console.debug(') ||
+                  (line.startsWith('console.log(') &&
+                   (line.includes('[DEBUG]') || line.includes('[TRACE]') || line.includes('TODO:')));
+                return isDebugLog && !file.includes('/scripts/') && !file.includes('/bin/');
+              }
             )
             .slice(0, 10);
 
@@ -286,8 +299,9 @@ export class ShrimpChecks {
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
+    logger.debug(`Analyzing ${files.length} files for complexity`);
 
-    for (const file of files.slice(0, 15)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
@@ -347,30 +361,36 @@ export class ShrimpChecks {
   async checkForBugs(): Promise<number> {
     console.log('[SCAN] Scanning for potential bugs...');
 
-    const bugDetector = new BugDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
     let totalIssues = 0;
+    let errorCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
+    logger.debug(`Analyzing ${files.length} files for bugs using AST`);
 
-    for (const file of files.slice(0, 25)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
         const content = await fs.readFile(file, 'utf-8');
+        const bugDetector = new BugDetectorAST(); // Create new instance per file
         const issues = await bugDetector.analyze(file, content);
 
         if (issues.length > 0) {
           totalIssues += issues.length;
           if (!this.details?.bugIssues) this.details!.bugIssues = [];
           this.details!.bugIssues.push(...issues);
+
+          // Accumulate severity counts
+          const counts = bugDetector.getSeverityCount();
+          errorCount += counts.error;
+          warningCount += counts.warning;
+          infoCount += counts.info;
         }
       } catch (error) {
         // Skip files we can't read
       }
     }
-
-    const severityCounts = bugDetector.getSeverityCount();
-    const errorCount = severityCounts.error;
-    const warningCount = severityCounts.warning;
 
     if (totalIssues > 0) {
       if (errorCount > 0) {
@@ -382,43 +402,50 @@ export class ShrimpChecks {
 
       console.log(`  [BUG] Found ${totalIssues} potential issues`);
       console.log(
-        `     - ${errorCount} critical, ${warningCount} warnings, ${severityCounts.info} info`
+        `     - ${errorCount} critical, ${warningCount} warnings, ${infoCount} info`
       );
     } else {
       console.log('  [OK] No obvious bugs detected');
     }
 
-    // Penalty: critical bugs = 5 points each, warnings = 2, info = 0.5
-    return Math.min(errorCount * 5 + warningCount * 2 + severityCounts.info * 0.5, 20);
+    // Penalty: critical bugs = 5 points each, warnings = 0.5, info = 0.1
+    // Warnings are often style/best-practice, not critical bugs
+    return Math.min(errorCount * 5 + warningCount * 0.5 + infoCount * 0.1, 20);
   }
 
   async checkPerformance(): Promise<number> {
     console.log('[SCAN] Analyzing performance issues...');
 
-    const perfDetector = new PerformanceDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
     let totalIssues = 0;
+    let criticalCount = 0;
+    let moderateCount = 0;
+    let minorCount = 0;
+    logger.debug(`Analyzing ${files.length} files for performance`);
 
-    for (const file of files.slice(0, 20)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
         const content = await fs.readFile(file, 'utf-8');
+        const perfDetector = new PerformanceDetector(); // Create new instance per file
         const issues = await perfDetector.analyze(file, content);
 
         if (issues.length > 0) {
           totalIssues += issues.length;
           if (!this.details?.performanceIssues) this.details!.performanceIssues = [];
           this.details!.performanceIssues.push(...issues);
+
+          // Accumulate severity counts
+          const counts = perfDetector.getSeverityCount();
+          criticalCount += counts.critical;
+          moderateCount += counts.moderate;
+          minorCount += counts.minor;
         }
       } catch (error) {
         // Skip files we can't read
       }
     }
-
-    const severityCounts = perfDetector.getSeverityCount();
-    const criticalCount = severityCounts.critical;
-    const moderateCount = severityCounts.moderate;
 
     if (totalIssues > 0) {
       if (criticalCount > 0) {
@@ -430,14 +457,15 @@ export class ShrimpChecks {
 
       console.log(`  [PERF] Found ${totalIssues} performance issues`);
       console.log(
-        `     - ${criticalCount} critical, ${moderateCount} moderate, ${severityCounts.minor} minor`
+        `     - ${criticalCount} critical, ${moderateCount} moderate, ${minorCount} minor`
       );
     } else {
       console.log('  [OK] No performance issues detected');
     }
 
-    // Penalty: critical = 4 points, moderate = 2, minor = 0.5
-    return Math.min(criticalCount * 4 + moderateCount * 2 + severityCounts.minor * 0.5, 15);
+    // Penalty: critical = 1 point, moderate = 0.5, minor = 0.1
+    // Performance issues are often micro-optimizations, not deal-breakers
+    return Math.min(criticalCount * 1 + moderateCount * 0.5 + minorCount * 0.1, 15);
   }
 
   async checkConsistency(): Promise<number> {
@@ -445,13 +473,14 @@ export class ShrimpChecks {
 
     const consistencyDetector = new ConsistencyDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
+    logger.debug(`Analyzing ${files.length} files for consistency`);
 
     // First pass: analyze codebase patterns
     await consistencyDetector.analyzeCodebase(files);
 
     // Second pass: analyze individual files
     let totalIssues = 0;
-    for (const file of files.slice(0, 30)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
@@ -499,8 +528,9 @@ export class ShrimpChecks {
     const importDetector = new ImportDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
     let totalIssues = 0;
+    logger.debug(`Analyzing ${files.length} files for import issues`);
 
-    for (const file of files.slice(0, 30)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
@@ -549,8 +579,9 @@ export class ShrimpChecks {
 
     const nextjsDetector = new NextJSDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
+    logger.debug(`Analyzing ${files.length} files for Next.js patterns`);
 
-    for (const file of files.slice(0, 30)) {
+    for (const file of files) {
       if (this.shouldIgnoreFile(file)) continue;
 
       try {
@@ -603,21 +634,13 @@ export class ShrimpChecks {
   // Helper methods
   private shouldIgnoreFile(file: string): boolean {
     const ignorePatterns = [
-      'shrimp',
-      'health-check',
-      'health-analyzer',
-      'health-autofix',
-      'auto-fixer',
-      'wcag-detector',
-      'bug-detector',
-      'performance-detector',
-      'consistency-detector',
-      'import-detector',
-      'nextjs-detector',
       '*.generated.*',
       'node_modules',
       '.next',
       'scripts/maintenance',
+      '/tests/',
+      '.test.',
+      '.spec.',
     ];
 
     return ignorePatterns.some((pattern) => {

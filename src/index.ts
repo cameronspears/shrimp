@@ -23,7 +23,7 @@ export type {
 } from './types/index.js';
 
 // Re-export all detectors
-export { BugDetector } from './detectors/bug-detector.js';
+export { BugDetectorAST as BugDetector } from './detectors/bug-detector-ast.js';
 export { PerformanceDetector } from './detectors/performance-detector.js';
 export { ConsistencyDetector } from './detectors/consistency-detector.js';
 export { ImportDetector } from './detectors/import-detector.js';

@@ -208,7 +208,7 @@ function displayHealthResults(result) {
       : result.healthScore >= 70
         ? 'yellow'
         : result.healthScore >= 50
-          ? 'orange'
+          ? 'magenta'
           : 'red';
 
   const indicator =

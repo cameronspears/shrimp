@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
 import path from 'path';
 import fs from 'fs';
-import { BugDetector } from '../../src/detectors/bug-detector';
+import { BugDetectorAST as BugDetector } from '../../src/detectors/bug-detector-ast';
 import { PerformanceDetector } from '../../src/detectors/performance-detector';
 import { ImportDetector } from '../../src/detectors/import-detector';
 

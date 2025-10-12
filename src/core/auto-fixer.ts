@@ -162,8 +162,8 @@ export class AutoFixer {
     // WCAG Fixes
     if (issue.category === 'Images' && issue.message.includes('missing alt')) {
       simpleFix = this.fixMissingAlt(issue, content, lines);
-      confidence = 92;
-      reason = 'Alt text inferred from context or marked as decorative';
+      confidence = 85;  // Lower confidence - requires manual review of placeholder
+      reason = 'Added empty alt for decorative images or TODO placeholder for content images';
     }
     else if (issue.category === 'Forms' && issue.message.includes('placeholder as label')) {
       simpleFix = this.fixPlaceholderLabel(issue, content, lines);
@@ -234,42 +234,30 @@ export class AutoFixer {
     const isDecorative =
       line.toLowerCase().includes('icon') ||
       line.toLowerCase().includes('decoration') ||
-      line.toLowerCase().includes('bg-');
+      line.toLowerCase().includes('bg-') ||
+      line.toLowerCase().includes('divider') ||
+      line.toLowerCase().includes('spacer');
 
     let newLine: string;
     if (isDecorative) {
       // Add empty alt for decorative images
       newLine = line.replace(/<(img|Image)([^>]*)>/, '<$1$2 alt="">');
     } else {
-      // Add descriptive alt based on context
-      const fileName = line.match(/src=["']([^"']*?)["']/)?.[1] || '';
-      const altText = this.inferAltText(fileName, line);
-      newLine = line.replace(/<(img|Image)([^>]*)>/, `<$1$2 alt="${altText}">`);
+      // DON'T auto-generate alt text - it's too risky and creates poor accessibility
+      // Instead, add a placeholder comment that developers must fill in
+      newLine = line.replace(/<(img|Image)([^>]*)>/, `<$1$2 alt="TODO: Add descriptive alt text">`);
     }
 
     const newContent = content.replace(line, newLine);
     return {
       newContent,
-      description: `Added alt attribute to image at line ${issue.line}`,
+      description: isDecorative
+        ? `Added empty alt="" for decorative image at line ${issue.line}`
+        : `Added alt placeholder at line ${issue.line} - requires manual description`,
     };
   }
 
-  private inferAltText(fileName: string, context: string): string {
-    // Try to infer from filename
-    const baseName = path.basename(fileName, path.extname(fileName));
-    const words = baseName
-      .replace(/[-_]/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .toLowerCase();
-
-    // Check for common patterns in context
-    if (context.includes('logo')) return 'Logo';
-    if (context.includes('avatar')) return 'User avatar';
-    if (context.includes('profile')) return 'Profile image';
-    if (context.includes('hero')) return 'Hero image';
-
-    return words || 'Image';
-  }
+  // Removed inferAltText - auto-generated alt text is harmful to accessibility
 
   private fixPlaceholderLabel(
     issue: any,

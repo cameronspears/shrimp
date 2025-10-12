@@ -531,30 +531,37 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
         }
 
         // Create and start new watcher
-        const watcher = new FileWatcher(path || process.cwd());
-        await watcher.start();
-        setWatcherInstance(watcher);
+        try {
+          const watcher = new FileWatcher(path || process.cwd());
+          await watcher.start();
+          setWatcherInstance(watcher);
 
-        const status = watcher.getStatus();
+          const status = watcher.getStatus();
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  message: 'File watcher started successfully',
-                  filesWatched: status.filesWatched,
-                  initialHealth: status.healthScore,
-                  trend: status.trend,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    message: 'File watcher started successfully',
+                    filesWatched: status.filesWatched,
+                    initialHealth: status.healthScore,
+                    trend: status.trend,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Failed to start file watcher: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+        }
       }
 
       case 'shrimp_watch_stop': {
@@ -579,28 +586,35 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
           };
         }
 
-        const finalStatus = watcher.getStatus();
-        await watcher.stop();
-        setWatcherInstance(null);
+        try {
+          const finalStatus = watcher.getStatus();
+          await watcher.stop();
+          setWatcherInstance(null);
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  message: 'File watcher stopped',
-                  finalHealth: finalStatus.healthScore,
-                  checksPerformed: finalStatus.checksPerformed,
-                  filesWatched: finalStatus.filesWatched,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    message: 'File watcher stopped',
+                    finalHealth: finalStatus.healthScore,
+                    checksPerformed: finalStatus.checksPerformed,
+                    filesWatched: finalStatus.filesWatched,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Failed to stop file watcher: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+        }
       }
 
       case 'shrimp_get_live_status': {

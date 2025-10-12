@@ -103,8 +103,18 @@ export class LicenseValidator {
 
   /**
    * Check and decrement remaining checks for free tier
+   *
+   * NOTE: For team/open-source use, licensing is disabled by default.
+   * All users get unlimited checks. Set SHRIMP_ENFORCE_LICENSE=true
+   * environment variable to enable licensing enforcement.
    */
   async canRunCheck(): Promise<{ allowed: boolean; remaining: number }> {
+    // Check if licensing enforcement is enabled
+    if (process.env.SHRIMP_ENFORCE_LICENSE !== 'true') {
+      // Licensing disabled - unlimited checks for everyone
+      return { allowed: true, remaining: -1 };
+    }
+
     const license = await this.validateLicense();
 
     if (license.tier !== 'free') {

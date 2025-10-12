@@ -12,13 +12,16 @@
     "build": "bun run build:tsc",
     "build:tsc": "tsc",
     "dev": "tsc --watch",
-    "test": "bun test",
+    "test": "bun test --coverage",
     "test:watch": "bun test --watch",
-    "test:unit": "bun test tests/unit",
-    "test:integration": "bun test tests/integration",
+    "test:unit": "bun test tests/unit --coverage",
+    "test:integration": "bun test tests/integration --coverage",
+    "test:e2e": "bun test tests/e2e",
+    "test:coverage": "bun test --coverage --coverage-reporter=lcov --coverage-reporter=text",
     "test:report": "bun run scripts/generate-test-report.ts",
     "test:track": "bun run scripts/track-quality-trend.ts",
-    "prepublishOnly": "bun run build"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "bun run build && bun run test"
   },
   "keywords": [
     "code-health",
@@ -51,13 +54,19 @@
     "chokidar": "^4.0.3",
     "commander": "^12.0.0",
     "conf": "^12.0.0",
-    "ora": "^8.0.1"
+    "ora": "^8.0.1",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/typescript-estree": "^7.0.0",
+    "pino": "^8.19.0",
+    "pino-pretty": "^10.3.1"
   },
   "devDependencies": {
     "@types/bun": "^1.0.0",
     "@types/chokidar": "^2.1.7",
     "@types/node": "^20.11.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "mock-fs": "^5.2.0",
+    "@types/mock-fs": "^4.13.4"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": "^0.20.0"
