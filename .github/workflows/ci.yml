@@ -48,10 +48,12 @@ jobs:
 
       - name: Enforce coverage threshold (80%)
         run: |
-          # Extract coverage percentage from lcov output
-          coverage=$(bun test --coverage --coverage-reporter=text 2>&1 | grep -oP 'All files\s+\|\s+\K[\d.]+' | head -1 || echo "0")
+          # Extract coverage percentage from text output
+          coverage=$(bun test --coverage --coverage-reporter=text 2>&1 | grep -E 'All files.*\|' | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "0")
           echo "Coverage: ${coverage}%"
-          if (( $(echo "$coverage < 80" | bc -l) )); then
+
+          # Use awk instead of bc for better compatibility
+          if [ $(echo "$coverage" | awk '{print ($1 < 80)}') -eq 1 ]; then
             echo "ERROR: Coverage ${coverage}% is below 80% threshold"
             exit 1
           fi
