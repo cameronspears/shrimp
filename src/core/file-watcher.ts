@@ -69,87 +69,97 @@ export class FileWatcher {
    * Start watching files for changes
    */
   async start(): Promise<void> {
-    if (this.isRunning) {
-      console.log('[Watcher] Already running');
-      return;
-    }
-
-    console.log('[Watcher] Starting file watcher...');
-    console.log(`[Watcher] Watching: ${this.watchRoot}`);
-
-    // Initial health check
-    await this.performInitialCheck();
-
-    // Start watching - watch root directory with file type filters
-    this.watcher = chokidar.watch(this.watchRoot, {
-      ignored: [
-        /(^|[\/\\])\../,  // Ignore dotfiles
-        ...this.IGNORE_PATTERNS,
-      ],
-      persistent: true,
-      ignoreInitial: false,
-      awaitWriteFinish: {
-        stabilityThreshold: 200,
-        pollInterval: 100,
-      },
-    });
-
-    this.watcher.on('change', (filePath: string) => {
-      // Only process files matching our patterns
-      if (this.matchesPattern(filePath)) {
-        this.onFileChanged(filePath);
+    try {
+      if (this.isRunning) {
+        console.log('[Watcher] Already running');
+        return;
       }
-    });
 
-    this.watcher.on('add', (filePath: string) => {
-      // Only process files matching our patterns
-      if (this.matchesPattern(filePath)) {
-        this.onFileChanged(filePath);
-      }
-    });
+      console.log('[Watcher] Starting file watcher...');
+      console.log(`[Watcher] Watching: ${this.watchRoot}`);
 
-    this.watcher.on('unlink', (filePath: string) => {
-      this.onFileDeleted(filePath);
-    });
+      // Initial health check
+      await this.performInitialCheck();
 
-    // Wait for watcher to be ready
-    await new Promise<void>((resolve) => {
-      this.watcher?.on('ready', () => {
-        const watched = this.watcher?.getWatched();
-        if (watched) {
-          this.filesWatched = Object.values(watched as Record<string, string[]>).reduce((sum: number, files: string[]) => sum + files.length, 0);
-        }
-        console.log(`[Watcher] Watching ${this.filesWatched} files`);
-        console.log(`[Watcher] Initial health: ${this.healthScore}/100`);
-        resolve();
+      // Start watching - watch root directory with file type filters
+      this.watcher = chokidar.watch(this.watchRoot, {
+        ignored: [
+          /(^|[\/\\])\../,  // Ignore dotfiles
+          ...this.IGNORE_PATTERNS,
+        ],
+        persistent: true,
+        ignoreInitial: false,
+        awaitWriteFinish: {
+          stabilityThreshold: 200,
+          pollInterval: 100,
+        },
       });
-    });
 
-    this.isRunning = true;
+      this.watcher.on('change', (filePath: string) => {
+        // Only process files matching our patterns
+        if (this.matchesPattern(filePath)) {
+          this.onFileChanged(filePath);
+        }
+      });
+
+      this.watcher.on('add', (filePath: string) => {
+        // Only process files matching our patterns
+        if (this.matchesPattern(filePath)) {
+          this.onFileChanged(filePath);
+        }
+      });
+
+      this.watcher.on('unlink', (filePath: string) => {
+        this.onFileDeleted(filePath);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise<void>((resolve) => {
+        this.watcher?.on('ready', () => {
+          const watched = this.watcher?.getWatched();
+          if (watched) {
+            this.filesWatched = Object.values(watched as Record<string, string[]>).reduce((sum: number, files: string[]) => sum + files.length, 0);
+          }
+          console.log(`[Watcher] Watching ${this.filesWatched} files`);
+          console.log(`[Watcher] Initial health: ${this.healthScore}/100`);
+          resolve();
+        });
+      });
+
+      this.isRunning = true;
+    } catch (error) {
+      console.error('[Watcher] Failed to start:', error);
+      throw error;
+    }
   }
 
   /**
    * Stop watching files
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) {
-      return;
+    try {
+      if (!this.isRunning) {
+        return;
+      }
+
+      console.log('[Watcher] Stopping file watcher...');
+
+      if (this.debounceTimeout) {
+        clearTimeout(this.debounceTimeout);
+        this.debounceTimeout = null;
+      }
+
+      if (this.watcher) {
+        await this.watcher.close();
+        this.watcher = null;
+      }
+
+      this.isRunning = false;
+      console.log('[Watcher] Stopped');
+    } catch (error) {
+      console.error('[Watcher] Error while stopping:', error);
+      this.isRunning = false;
     }
-
-    console.log('[Watcher] Stopping file watcher...');
-
-    if (this.debounceTimeout) {
-      clearTimeout(this.debounceTimeout);
-      this.debounceTimeout = null;
-    }
-
-    if (this.watcher) {
-      await this.watcher.close();
-      this.watcher = null;
-    }
-
-    this.isRunning = false;
-    console.log('[Watcher] Stopped');
   }
 
   /**
@@ -186,36 +196,43 @@ export class FileWatcher {
    * Perform initial health check on startup
    */
   private async performInitialCheck(): Promise<void> {
-    console.log('[Watcher] Running initial health check...');
+    try {
+      console.log('[Watcher] Running initial health check...');
 
-    const startTime = Date.now();
-    const details: any = {
-      bugIssues: [],
-      performanceIssues: [],
-      consistencyIssues: [],
-      importIssues: [],
-      wcagIssues: [],
-      nextJSIssues: [],
-    };
+      const startTime = Date.now();
+      const details: any = {
+        bugIssues: [],
+        performanceIssues: [],
+        consistencyIssues: [],
+        importIssues: [],
+        wcagIssues: [],
+        nextJSIssues: [],
+      };
 
-    const checks = new ShrimpChecks(this.watchRoot, false, details, []);
+      const checks = new ShrimpChecks(this.watchRoot, false, details, []);
 
-    // Run all detectors
-    let score = 100;
-    score -= await checks.checkForBugs();
-    score -= await checks.checkPerformance();
-    score -= await checks.checkConsistency();
-    score -= await checks.checkImports();
-    score -= await checks.checkNextJSPatterns();
+      // Run all detectors
+      let score = 100;
+      score -= await checks.checkForBugs();
+      score -= await checks.checkPerformance();
+      score -= await checks.checkConsistency();
+      score -= await checks.checkImports();
+      score -= await checks.checkNextJSPatterns();
 
-    this.healthScore = Math.max(0, Math.min(100, score));
-    this.previousScore = this.healthScore;
+      this.healthScore = Math.max(0, Math.min(100, score));
+      this.previousScore = this.healthScore;
 
-    // Store issues in memory
-    this.storeIssues(details);
+      // Store issues in memory
+      this.storeIssues(details);
 
-    const duration = Date.now() - startTime;
-    console.log(`[Watcher] Initial check complete: ${this.healthScore}/100 (${duration}ms)`);
+      const duration = Date.now() - startTime;
+      console.log(`[Watcher] Initial check complete: ${this.healthScore}/100 (${duration}ms)`);
+    } catch (error) {
+      console.error('[Watcher] Error during initial check:', error);
+      // Set a default score if check fails
+      this.healthScore = 50;
+      this.previousScore = 50;
+    }
   }
 
   /**
@@ -264,28 +281,32 @@ export class FileWatcher {
   private async processChangedFiles(): Promise<void> {
     if (this.pendingFiles.size === 0) return;
 
-    const files = Array.from(this.pendingFiles);
-    this.pendingFiles.clear();
+    try {
+      const files = Array.from(this.pendingFiles);
+      this.pendingFiles.clear();
 
-    const startTime = Date.now();
-    console.log(`[Watcher] Checking ${files.length} changed file(s)...`);
+      const startTime = Date.now();
+      console.log(`[Watcher] Checking ${files.length} changed file(s)...`);
 
-    // Run incremental checks on changed files only
-    for (const file of files) {
-      await this.checkSingleFile(file);
+      // Run incremental checks on changed files only
+      for (const file of files) {
+        await this.checkSingleFile(file);
+      }
+
+      this.checksPerformed++;
+      this.lastCheckTime = Date.now();
+      this.recalculateHealthScore();
+
+      const duration = Date.now() - startTime;
+      const trend = this.calculateTrend();
+      const trendIcon = trend === 'improving' ? '↑' : trend === 'declining' ? '↓' : '→';
+
+      console.log(
+        `[Watcher] Health: ${this.healthScore}/100 ${trendIcon} (${duration}ms, ${this.issues.size} files with issues)`
+      );
+    } catch (error) {
+      console.error('[Watcher] Error processing changed files:', error);
     }
-
-    this.checksPerformed++;
-    this.lastCheckTime = Date.now();
-    this.recalculateHealthScore();
-
-    const duration = Date.now() - startTime;
-    const trend = this.calculateTrend();
-    const trendIcon = trend === 'improving' ? '↑' : trend === 'declining' ? '↓' : '→';
-
-    console.log(
-      `[Watcher] Health: ${this.healthScore}/100 ${trendIcon} (${duration}ms, ${this.issues.size} files with issues)`
-    );
   }
 
   /**

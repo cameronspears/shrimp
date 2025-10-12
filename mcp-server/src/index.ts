@@ -10,7 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { execSync } from 'child_process';
-import { existsSync, statSync } from 'fs';
+import { access, stat } from 'fs/promises';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,15 +20,43 @@ const __dirname = dirname(__filename);
 
 // Import FileWatcher for real-time monitoring
 // Note: We'll import from the built dist instead of src
-let FileWatcher: any = null;
-let getWatcherInstance: any = null;
-let setWatcherInstance: any = null;
+type FileWatcherClass = {
+  new (rootPath?: string): FileWatcherInstance;
+};
+
+type FileWatcherInstance = {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  getStatus(): WatcherStatus;
+};
+
+type WatcherStatus = {
+  isRunning: boolean;
+  healthScore: number;
+  previousScore: number;
+  trend: 'improving' | 'declining' | 'stable';
+  issueCount: number;
+  topIssues: Array<{
+    file: string;
+    line: number;
+    category: string;
+    message: string;
+    severity: 'error' | 'warning' | 'info';
+  }>;
+  lastCheckTime: number;
+  filesWatched: number;
+  checksPerformed: number;
+};
+
+let FileWatcher: FileWatcherClass | null = null;
+let getWatcherInstance: (() => FileWatcherInstance | null) | null = null;
+let setWatcherInstance: ((watcher: FileWatcherInstance | null) => void) | null = null;
 
 try {
   const watcherModule = await import('../../dist/core/file-watcher.js');
   FileWatcher = watcherModule.FileWatcher;
   getWatcherInstance = watcherModule.getWatcherInstance;
-  setWatcherInstance = watcherModule.setWatcherInstance;
+  setWatcherInstance = watcherModule.setWatcherInstance as ((watcher: FileWatcherInstance | null) => void);
 } catch (error) {
   console.error('[MCP] Warning: Could not load FileWatcher. Watch features disabled.');
 }
@@ -107,20 +135,24 @@ const server = new Server(
 );
 
 // Helper function to run shrimp commands
-function runShrimpCommand(command: string, cwd?: string): { output: string; exitCode: number } {
+async function runShrimpCommand(command: string, cwd?: string): Promise<{ output: string; exitCode: number }> {
   const shrimpPath = resolve(__dirname, '../../bin/shrimp.js');
 
-  if (!existsSync(shrimpPath)) {
+  try {
+    await access(shrimpPath);
+  } catch {
     throw new Error('Shrimp CLI not found. Please install @shrimphealth/cli');
   }
 
   // Validate cwd if provided
   if (cwd) {
-    if (!existsSync(cwd)) {
+    try {
+      await access(cwd);
+    } catch {
       throw new Error(`Path does not exist: ${cwd}`);
     }
 
-    const stats = statSync(cwd);
+    const stats = await stat(cwd);
     if (!stats.isDirectory()) {
       throw new Error(`Path must be a directory, not a file: ${cwd}`);
     }
@@ -134,10 +166,11 @@ function runShrimpCommand(command: string, cwd?: string): { output: string; exit
     });
 
     return { output, exitCode: 0 };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { stdout?: string; stderr?: string; message?: string; status?: number };
     return {
-      output: error.stdout || error.stderr || error.message,
-      exitCode: error.status || 1,
+      output: err.stdout || err.stderr || err.message || 'Unknown error',
+      exitCode: err.status || 1,
     };
   }
 }
@@ -147,7 +180,7 @@ function parseHealthOutput(output: string): {
   score: number;
   recommendations: string[];
   summary: string;
-  details: any;
+  details: string;
 } {
   // Parse the output to extract structured data
   const scoreMatch = output.match(/Score:\s*(\d+)\/100/);
@@ -301,7 +334,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           command += ` --threshold ${threshold}`;
         }
 
-        const result = runShrimpCommand(command, path);
+        const result = await runShrimpCommand(command, path);
 
         if (result.exitCode !== 0 && !result.output.includes('Score:')) {
           throw new McpError(
@@ -340,7 +373,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           command += ' --dry-run';
         }
 
-        const result = runShrimpCommand(command, path);
+        const result = await runShrimpCommand(command, path);
 
         return {
           content: [
@@ -356,7 +389,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { path, detailed } = GetStatusSchema.parse(args);
 
         let command = 'check --json';
-        const result = runShrimpCommand(command, path);
+        const result = await runShrimpCommand(command, path);
         const parsed = parseHealthOutput(result.output);
 
         const statusOutput = {
@@ -508,7 +541,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
         }
 
         // Check if watcher is already running
-        const existing = getWatcherInstance();
+        const existing = getWatcherInstance?.();
         if (existing && existing.getStatus().isRunning) {
           const status = existing.getStatus();
           return {
@@ -534,7 +567,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
         try {
           const watcher = new FileWatcher(path || process.cwd());
           await watcher.start();
-          setWatcherInstance(watcher);
+          setWatcherInstance?.(watcher);
 
           const status = watcher.getStatus();
 
@@ -567,7 +600,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
       case 'shrimp_watch_stop': {
         WatchStopSchema.parse(args);
 
-        const watcher = getWatcherInstance();
+        const watcher = getWatcherInstance?.();
         if (!watcher) {
           return {
             content: [
@@ -589,7 +622,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
         try {
           const finalStatus = watcher.getStatus();
           await watcher.stop();
-          setWatcherInstance(null);
+          setWatcherInstance?.(null);
 
           return {
             content: [
@@ -620,7 +653,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
       case 'shrimp_get_live_status': {
         const { includeIssues } = GetLiveStatusSchema.parse(args);
 
-        const watcher = getWatcherInstance();
+        const watcher = getWatcherInstance?.();
         if (!watcher) {
           return {
             content: [
@@ -641,7 +674,23 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
 
         const status = watcher.getStatus();
 
-        const response: any = {
+        const response: {
+          isRunning: boolean;
+          healthScore: number;
+          previousScore: number;
+          trend: string;
+          issueCount: number;
+          lastCheckTime: number;
+          filesWatched: number;
+          checksPerformed: number;
+          topIssues?: Array<{
+            file: string;
+            line: number;
+            category: string;
+            message: string;
+            severity: 'error' | 'warning' | 'info';
+          }>;
+        } = {
           isRunning: status.isRunning,
           healthScore: status.healthScore,
           previousScore: status.previousScore,

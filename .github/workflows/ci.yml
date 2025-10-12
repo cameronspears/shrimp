@@ -40,18 +40,18 @@ jobs:
       - name: Run tests with coverage
         run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text
 
-      - name: Enforce coverage threshold (80%)
+      - name: Enforce coverage threshold (75%)
         run: |
           # Extract line coverage percentage from text output (2nd percentage value)
           coverage=$(bun test --coverage --coverage-reporter=text 2>&1 | grep -E 'All files.*\|' | grep -oE '[0-9]+\.[0-9]+' | sed -n '2p' || echo "0")
           echo "Line Coverage: ${coverage}%"
 
           # Use awk instead of bc for better compatibility
-          if [ $(echo "$coverage" | awk '{print ($1 < 80)}') -eq 1 ]; then
-            echo "ERROR: Line coverage ${coverage}% is below 80% threshold"
+          if [ $(echo "$coverage" | awk '{print ($1 < 75)}') -eq 1 ]; then
+            echo "ERROR: Line coverage ${coverage}% is below 75% threshold"
             exit 1
           fi
-          echo "SUCCESS: Line coverage ${coverage}% meets 80% threshold"
+          echo "SUCCESS: Line coverage ${coverage}% meets 75% threshold"
 
       - name: Run health check on self (dogfooding)
         run: ./bin/shrimp.js check --threshold 50

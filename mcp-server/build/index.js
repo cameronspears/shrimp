@@ -4,14 +4,12 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema, ErrorCode, McpError, } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { execSync } from 'child_process';
-import { existsSync, statSync } from 'fs';
+import { access, stat } from 'fs/promises';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// Import FileWatcher for real-time monitoring
-// Note: We'll import from the built dist instead of src
 let FileWatcher = null;
 let getWatcherInstance = null;
 let setWatcherInstance = null;
@@ -87,17 +85,23 @@ const server = new Server({
     },
 });
 // Helper function to run shrimp commands
-function runShrimpCommand(command, cwd) {
+async function runShrimpCommand(command, cwd) {
     const shrimpPath = resolve(__dirname, '../../bin/shrimp.js');
-    if (!existsSync(shrimpPath)) {
+    try {
+        await access(shrimpPath);
+    }
+    catch {
         throw new Error('Shrimp CLI not found. Please install @shrimphealth/cli');
     }
     // Validate cwd if provided
     if (cwd) {
-        if (!existsSync(cwd)) {
+        try {
+            await access(cwd);
+        }
+        catch {
             throw new Error(`Path does not exist: ${cwd}`);
         }
-        const stats = statSync(cwd);
+        const stats = await stat(cwd);
         if (!stats.isDirectory()) {
             throw new Error(`Path must be a directory, not a file: ${cwd}`);
         }
@@ -111,9 +115,10 @@ function runShrimpCommand(command, cwd) {
         return { output, exitCode: 0 };
     }
     catch (error) {
+        const err = error;
         return {
-            output: error.stdout || error.stderr || error.message,
-            exitCode: error.status || 1,
+            output: err.stdout || err.stderr || err.message || 'Unknown error',
+            exitCode: err.status || 1,
         };
     }
 }
@@ -256,7 +261,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 if (threshold) {
                     command += ` --threshold ${threshold}`;
                 }
-                const result = runShrimpCommand(command, path);
+                const result = await runShrimpCommand(command, path);
                 if (result.exitCode !== 0 && !result.output.includes('Score:')) {
                     throw new McpError(ErrorCode.InternalError, `Shrimp check failed: ${result.output}`);
                 }
@@ -282,7 +287,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 if (dryRun) {
                     command += ' --dry-run';
                 }
-                const result = runShrimpCommand(command, path);
+                const result = await runShrimpCommand(command, path);
                 return {
                     content: [
                         {
@@ -295,7 +300,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case 'shrimp_status': {
                 const { path, detailed } = GetStatusSchema.parse(args);
                 let command = 'check --json';
-                const result = runShrimpCommand(command, path);
+                const result = await runShrimpCommand(command, path);
                 const parsed = parseHealthOutput(result.output);
                 const statusOutput = {
                     currentHealth: parsed.score,
@@ -435,7 +440,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
                     throw new McpError(ErrorCode.InternalError, 'File watcher not available. Please build Shrimp first (bun run build)');
                 }
                 // Check if watcher is already running
-                const existing = getWatcherInstance();
+                const existing = getWatcherInstance?.();
                 if (existing && existing.getStatus().isRunning) {
                     const status = existing.getStatus();
                     return {
@@ -456,7 +461,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
                 try {
                     const watcher = new FileWatcher(path || process.cwd());
                     await watcher.start();
-                    setWatcherInstance(watcher);
+                    setWatcherInstance?.(watcher);
                     const status = watcher.getStatus();
                     return {
                         content: [
@@ -479,7 +484,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
             }
             case 'shrimp_watch_stop': {
                 WatchStopSchema.parse(args);
-                const watcher = getWatcherInstance();
+                const watcher = getWatcherInstance?.();
                 if (!watcher) {
                     return {
                         content: [
@@ -496,7 +501,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
                 try {
                     const finalStatus = watcher.getStatus();
                     await watcher.stop();
-                    setWatcherInstance(null);
+                    setWatcherInstance?.(null);
                     return {
                         content: [
                             {
@@ -518,7 +523,7 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
             }
             case 'shrimp_get_live_status': {
                 const { includeIssues } = GetLiveStatusSchema.parse(args);
-                const watcher = getWatcherInstance();
+                const watcher = getWatcherInstance?.();
                 if (!watcher) {
                     return {
                         content: [

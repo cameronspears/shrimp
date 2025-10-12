@@ -1,6 +1,24 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+export interface Issue {
+  file: string;
+  line?: number;
+  column?: number;
+  severity?: string;
+  category?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface IssuesCollection {
+  bugIssues?: Issue[];
+  performanceIssues?: Issue[];
+  importIssues?: Issue[];
+  wcagIssues?: Issue[];
+  consistencyIssues?: Issue[];
+}
+
 export interface FixWithConfidence {
   newContent: string;
   description: string;
@@ -43,7 +61,7 @@ export class AutoFixer {
   /**
    * Fix all auto-fixable issues in the codebase
    */
-  async fixAll(issues: any): Promise<AutoFixResult[]> {
+  async fixAll(issues: IssuesCollection): Promise<AutoFixResult[]> {
     console.log('[FIX] Starting aggressive auto-fix mode...');
 
     // Group issues by file
@@ -65,8 +83,8 @@ export class AutoFixer {
     return this.results;
   }
 
-  private groupIssuesByFile(issues: any): Record<string, any[]> {
-    const grouped: Record<string, any[]> = {};
+  private groupIssuesByFile(issues: IssuesCollection): Record<string, Issue[]> {
+    const grouped: Record<string, Issue[]> = {};
 
     // Process all issue types
     const allIssues = [
@@ -87,7 +105,7 @@ export class AutoFixer {
     return grouped;
   }
 
-  private async fixFile(filePath: string, content: string, issues: any[]): Promise<AutoFixResult> {
+  private async fixFile(filePath: string, content: string, issues: Issue[]): Promise<AutoFixResult> {
     const result: AutoFixResult = {
       file: filePath,
       fixesApplied: 0,
@@ -151,10 +169,15 @@ export class AutoFixer {
   }
 
   private generateFix(
-    issue: any,
+    issue: Issue,
     content: string,
     lines: string[]
   ): FixWithConfidence | null {
+    // Early return if required fields are missing
+    if (!issue.message || !issue.line) {
+      return null;
+    }
+
     let simpleFix: { newContent: string; description: string } | null = null;
     let confidence = 90; // Default confidence
     let reason = 'Automated fix with high confidence';
@@ -224,11 +247,11 @@ export class AutoFixer {
   // ==================== WCAG FIXES ====================
 
   private fixMissingAlt(
-    issue: any,
+    issue: Issue,
     content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const line = lines[issue.line - 1];
+    const line = lines[issue.line! - 1];
 
     // Check if it's a decorative image (has no meaningful content indicator)
     const isDecorative =
@@ -252,19 +275,19 @@ export class AutoFixer {
     return {
       newContent,
       description: isDecorative
-        ? `Added empty alt="" for decorative image at line ${issue.line}`
-        : `Added alt placeholder at line ${issue.line} - requires manual description`,
+        ? `Added empty alt="" for decorative image at line ${issue.line!}`
+        : `Added alt placeholder at line ${issue.line!} - requires manual description`,
     };
   }
 
   // Removed inferAltText - auto-generated alt text is harmful to accessibility
 
   private fixPlaceholderLabel(
-    issue: any,
+    issue: Issue,
     _content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const inputLine = lines[issue.line - 1];
+    const inputLine = lines[issue.line! - 1];
     const placeholderMatch = inputLine.match(/placeholder=["']([^"']+)["']/);
 
     if (!placeholderMatch) return null;
@@ -282,23 +305,23 @@ export class AutoFixer {
     const indentation = inputLine.match(/^\s*/)?.[0] || '';
     const label = `${indentation}<label htmlFor="${inputId}">${placeholderText}</label>\n`;
 
-    const lineIndex = issue.line - 1;
+    const lineIndex = issue.line! - 1;
     const newLines = [...lines];
     newLines[lineIndex] = newInputLine;
     newLines.splice(lineIndex, 0, label);
 
     return {
       newContent: newLines.join('\n'),
-      description: `Added label for input at line ${issue.line}`,
+      description: `Added label for input at line ${issue.line!}`,
     };
   }
 
   private fixClickHandler(
-    issue: any,
+    issue: Issue,
     content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const line = lines[issue.line - 1];
+    const line = lines[issue.line! - 1];
 
     // Check if it already has keyboard support
     if (line.includes('onKeyDown') || line.includes('role=')) {
@@ -329,34 +352,34 @@ export class AutoFixer {
 
     return {
       newContent: content.replace(line, newLine),
-      description: `Added keyboard accessibility to interactive element at line ${issue.line}`,
+      description: `Added keyboard accessibility to interactive element at line ${issue.line!}`,
     };
   }
 
   private fixTabIndex(
-    issue: any,
+    issue: Issue,
     content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const line = lines[issue.line - 1];
+    const line = lines[issue.line! - 1];
 
     // Replace positive tabIndex with 0
     const newLine = line.replace(/tabIndex=\{?\d+\}?/, 'tabIndex={0}');
 
     return {
       newContent: content.replace(line, newLine),
-      description: `Fixed tabIndex at line ${issue.line}`,
+      description: `Fixed tabIndex at line ${issue.line!}`,
     };
   }
 
   // ==================== BUG FIXES ====================
 
   private fixEmptyCatch(
-    issue: any,
+    issue: Issue,
     _content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const catchLineIndex = issue.line - 1;
+    const catchLineIndex = issue.line! - 1;
     const catchLine = lines[catchLineIndex];
 
     // Check if next line is empty closing brace
@@ -371,7 +394,7 @@ export class AutoFixer {
 
         return {
           newContent: newLines.join('\n'),
-          description: `Added comment to empty catch block at line ${issue.line}`,
+          description: `Added comment to empty catch block at line ${issue.line!}`,
         };
       }
     }
@@ -380,36 +403,36 @@ export class AutoFixer {
   }
 
   private fixEmptyAriaLabel(
-    issue: any,
+    issue: Issue,
     content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const line = lines[issue.line - 1];
+    const line = lines[issue.line! - 1];
 
     // Remove empty aria-label
     const newLine = line.replace(/aria-label=["']["']/, '');
 
     return {
       newContent: content.replace(line, newLine),
-      description: `Removed empty aria-label at line ${issue.line}`,
+      description: `Removed empty aria-label at line ${issue.line!}`,
     };
   }
 
   // ==================== IMPORT FIXES ====================
 
   private fixUnusedImport(
-    issue: any,
+    issue: Issue,
     _content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
-    const line = lines[issue.line - 1];
+    const line = lines[issue.line! - 1];
 
     // Only remove if it's clearly marked as unused
     if (line.includes('// UNUSED') || line.includes('/* UNUSED */')) {
-      const newLines = lines.filter((_, index) => index !== issue.line - 1);
+      const newLines = lines.filter((_, index) => index !== issue.line! - 1);
       return {
         newContent: newLines.join('\n'),
-        description: `Removed unused import at line ${issue.line}`,
+        description: `Removed unused import at line ${issue.line!}`,
       };
     }
 
@@ -417,7 +440,7 @@ export class AutoFixer {
   }
 
   private fixImportOrganization(
-    _issue: any,
+    _issue: Issue,
     _content: string,
     lines: string[]
   ): { newContent: string; description: string } | null {
@@ -469,7 +492,7 @@ export class AutoFixer {
   // ==================== PERFORMANCE FIXES ====================
 
   private fixInlineObject(
-    _issue: any,
+    _issue: Issue,
     _content: string,
     _lines: string[]
   ): { newContent: string; description: string } | null {
