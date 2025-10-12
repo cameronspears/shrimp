@@ -26,7 +26,7 @@ jobs:
           bun-version: ${{ matrix.bun-version }}
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ matrix.bun-version }}-${{ hashFiles('**/bun.lockb') }}
@@ -89,7 +89,7 @@ jobs:
           bun-version: latest
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-security-${{ hashFiles('**/bun.lockb') }}
@@ -133,7 +133,7 @@ jobs:
           bun-version: latest
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-mcp-${{ hashFiles('**/bun.lockb', 'mcp-server/bun.lockb') }}
