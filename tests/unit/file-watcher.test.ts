@@ -38,11 +38,20 @@ describe('FileWatcher', () => {
       watcher = null;
     }
 
+    // Wait a bit for file handles to be released (especially on Linux/CI)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Clean up temp directory
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
     } catch (error) {
-      // Ignore cleanup errors
+      // Ignore cleanup errors - retry once after delay
+      await new Promise(resolve => setTimeout(resolve, 200));
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (retryError) {
+        // Still failing, give up to prevent blocking other tests
+      }
     }
   });
 
