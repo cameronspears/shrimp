@@ -54,7 +54,7 @@
     "chokidar": "^4.0.3",
     "commander": "^12.0.0",
     "conf": "^12.0.0",
-    "ora": "^8.0.1",
+    "ora": "^9.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@typescript-eslint/typescript-estree": "^7.0.0",
     "pino": "^8.19.0",
