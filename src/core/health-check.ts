@@ -324,23 +324,37 @@ export class CodebaseMaintenance {
 
   // Helper methods
   private shouldIgnoreFile(file: string): boolean {
+    // Check if we're analyzing the Shrimp codebase itself (dogfooding)
+    // If so, exclude Shrimp's own implementation files
+    const isShrimpProject = file.includes('shrimp-health') || file.includes('/shrimp/');
+
+    if (isShrimpProject) {
+      const shrimpExclusions = [
+        '/src/core/',
+        '/src/detectors/',
+        '/src/integrations/',
+        '/src/licensing/',
+        '/src/utils/',
+        '/tests/',
+        '/mcp-server/src/',
+        '/bin/',
+      ];
+
+      if (shrimpExclusions.some(dir => file.includes(dir))) {
+        return true;
+      }
+    }
+
+    // Standard exclusions for all projects
     const ignorePatterns = [
-      'shrimp',
-      'health-check',
-      'health-analyzer',
-      'health-autofix',
-      'auto-fixer',
-      'wcag-detector',
-      'bug-detector',
-      'performance-detector',
-      'consistency-detector',
-      'import-detector',
-      'nextjs-detector',
-      'scripts/maintenance',
       '*.generated.*',
       'node_modules',
       '.next',
       '.git',
+      'dist/',
+      'build/',
+      '.cache/',
+      'coverage/',
     ];
 
     return ignorePatterns.some((pattern) => {

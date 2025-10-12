@@ -710,12 +710,36 @@ export class ShrimpChecks {
 
   // Helper methods
   private shouldIgnoreFile(file: string): boolean {
+    // Check if we're analyzing the Shrimp codebase itself (dogfooding)
+    // If so, exclude Shrimp's own implementation files
+    const isShrimpProject = file.includes('shrimp-health') || file.includes('/shrimp/');
+
+    if (isShrimpProject) {
+      const shrimpExclusions = [
+        '/src/core/',
+        '/src/detectors/',
+        '/src/integrations/',
+        '/src/licensing/',
+        '/src/utils/',
+        '/tests/',
+        '/mcp-server/src/',
+        '/bin/',
+      ];
+
+      if (shrimpExclusions.some(dir => file.includes(dir))) {
+        return true;
+      }
+    }
+
+    // Standard exclusions for all projects
     const ignorePatterns = [
       '*.generated.*',
       'node_modules',
       '.next',
-      'scripts/maintenance',
-      '/tests/',
+      'dist/',
+      'build/',
+      '.cache/',
+      'coverage/',
       '.test.',
       '.spec.',
     ];
