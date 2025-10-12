@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema, ErrorCode, McpError, } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 // ES module equivalent of __dirname
@@ -44,10 +44,6 @@ const FixIssuesSchema = z.object({
         .boolean()
         .optional()
         .describe('Preview fixes without applying them'),
-    categories: z
-        .array(z.enum(['imports', 'accessibility', 'performance', 'bugs', 'consistency']))
-        .optional()
-        .describe('Specific issue categories to fix'),
 });
 const ExplainIssueSchema = z.object({
     issueType: z
@@ -92,11 +88,21 @@ const server = new Server({
 });
 // Helper function to run shrimp commands
 function runShrimpCommand(command, cwd) {
-    try {
-        const shrimpPath = resolve(__dirname, '../../bin/shrimp.js');
-        if (!existsSync(shrimpPath)) {
-            throw new Error('Shrimp CLI not found. Please install @shrimphealth/cli');
+    const shrimpPath = resolve(__dirname, '../../bin/shrimp.js');
+    if (!existsSync(shrimpPath)) {
+        throw new Error('Shrimp CLI not found. Please install @shrimphealth/cli');
+    }
+    // Validate cwd if provided
+    if (cwd) {
+        if (!existsSync(cwd)) {
+            throw new Error(`Path does not exist: ${cwd}`);
         }
+        const stats = statSync(cwd);
+        if (!stats.isDirectory()) {
+            throw new Error(`Path must be a directory, not a file: ${cwd}`);
+        }
+    }
+    try {
         const output = execSync(`node ${shrimpPath} ${command}`, {
             cwd: cwd || process.cwd(),
             encoding: 'utf-8',
@@ -106,7 +112,7 @@ function runShrimpCommand(command, cwd) {
     }
     catch (error) {
         return {
-            output: error.stdout || error.message,
+            output: error.stdout || error.stderr || error.message,
             exitCode: error.status || 1,
         };
     }
@@ -164,14 +170,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     dryRun: {
                         type: 'boolean',
                         description: 'Preview fixes without applying them',
-                    },
-                    categories: {
-                        type: 'array',
-                        items: {
-                            type: 'string',
-                            enum: ['imports', 'accessibility', 'performance', 'bugs', 'consistency'],
-                        },
-                        description: 'Specific issue categories to fix',
                     },
                 },
             },
@@ -279,13 +277,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 };
             }
             case 'shrimp_fix': {
-                const { path, dryRun, categories } = FixIssuesSchema.parse(args);
+                const { path, dryRun } = FixIssuesSchema.parse(args);
                 let command = 'fix';
                 if (dryRun) {
                     command += ' --dry-run';
-                }
-                if (categories && categories.length > 0) {
-                    command += ` --categories ${categories.join(',')}`;
                 }
                 const result = runShrimpCommand(command, path);
                 return {
