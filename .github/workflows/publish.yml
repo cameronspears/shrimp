@@ -127,9 +127,9 @@ jobs:
 
             ### Installation
             ```bash
-            npm install -g @shrimphealth/cli
+            npm install -g shrimp-health
             # or
-            bun install -g @shrimphealth/cli
+            bun install -g shrimp-health
             ```
 
             ### What's New
@@ -152,6 +152,6 @@ jobs:
     steps:
       - name: Success notification
         run: |
-          echo "Successfully published @shrimphealth/cli to NPM"
+          echo "Successfully published shrimp-health to NPM"
           echo "Tag: ${GITHUB_REF#refs/tags/}"
-          echo "Release available at: https://www.npmjs.com/package/@shrimphealth/cli"
+          echo "Release available at: https://www.npmjs.com/package/shrimp-health"

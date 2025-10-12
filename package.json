@@ -1,5 +1,5 @@
 {
-  "name": "@shrimphealth/cli",
+  "name": "shrimp-health",
   "version": "1.0.0",
   "description": "AI-powered code health monitoring with automated fixes",
   "type": "module",

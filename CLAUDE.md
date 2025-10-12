@@ -136,7 +136,7 @@ Real-time monitoring via chokidar:
 - [ ] Improve error messages and UX
 - [ ] Complete API documentation
 - [ ] Simplify or remove licensing system
-- [ ] Publish to npm as @shrimphealth/cli
+- [ ] Publish to npm as shrimp-health
 - [ ] Create launch materials (demo video, docs site)
 
 ## Development Commands
@@ -389,7 +389,7 @@ This is the killer feature. Claude Code users can say "check my code quality" an
 5. **Performance optimization** - Hit <50ms per file target
 6. **Simplify or remove licensing** - It's currently half-baked
 7. **Polish UX** - Better errors, progress indicators
-8. **Publish to npm** - @shrimphealth/cli
+8. **Publish to npm** - shrimp-health
 
 ---
 

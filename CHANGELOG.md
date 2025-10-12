@@ -79,7 +79,7 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
   - Version validation between git tags and package.json
   - Pre-publish validation (tests, build, health check)
   - Automatic GitHub release creation
-  - NPM package publishing to @shrimphealth/cli
+  - NPM package publishing to shrimp-health
 - **Dependabot Configuration** (.github/dependabot.yml)
   - Weekly dependency updates for main package
   - Weekly updates for MCP server dependencies
@@ -264,7 +264,7 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
 ## Links
 
 - [GitHub Repository](https://github.com/cameronspears/shrimp)
-- [NPM Package](https://www.npmjs.com/package/@shrimphealth/cli)
+- [NPM Package](https://www.npmjs.com/package/shrimp-health)
 - [Issue Tracker](https://github.com/cameronspears/shrimp/issues)
 - [Discussions](https://github.com/cameronspears/shrimp/discussions)
 
@@ -281,7 +281,7 @@ This is the first public release. No migration needed.
 All features are now free. License keys are no longer required. Simply update to v1.0.0:
 
 ```bash
-npm update -g @shrimphealth/cli
+npm update -g shrimp-health
 ```
 
 All previously Pro/Team features (Claude integration, advanced detectors, unlimited checks) are now available to everyone.

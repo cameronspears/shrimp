@@ -20,7 +20,7 @@ jobs:
           node-version: '20'
 
       - name: Install Shrimp Health
-        run: npm install -g @shrimphealth/cli
+        run: npm install -g shrimp-health
 
       - name: Activate License (optional - for Pro features)
         if: ${{ secrets.SHRIMP_LICENSE_KEY }}

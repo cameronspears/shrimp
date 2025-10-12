@@ -4,7 +4,7 @@
 
 Keep your codebase clean, consistent, and bug-free with Shrimp Health - the open source code quality tool that can automatically fix issues using Claude AI.
 
-[![npm version](https://badge.fury.io/js/%40shrimphealth%2Fcli.svg)](https://www.npmjs.com/package/@shrimphealth/cli)
+[![npm version](https://badge.fury.io/js/%40shrimphealth%2Fcli.svg)](https://www.npmjs.com/package/shrimp-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-537%20passing-brightgreen)](tests/)
 [![Precision](https://img.shields.io/badge/precision-66%25%2B-blue)](tests/validation/real-world-results.md)
@@ -51,13 +51,13 @@ Shrimp Health is your **quality copilot** - specifically designed for Next.js pr
 
 ```bash
 # Global installation (recommended)
-npm install -g @shrimphealth/cli
+npm install -g shrimp-health
 
 # Or use with npx (no installation)
-npx @shrimphealth/cli check
+npx shrimp-health check
 
 # Project installation
-npm install --save-dev @shrimphealth/cli
+npm install --save-dev shrimp-health
 ```
 
 ## 🚀 Quick Start
@@ -132,7 +132,7 @@ shrimp check --threshold 85 || exit 1
 # GitHub Actions example
 - name: Health Check
   run: |
-    npm install -g @shrimphealth/cli
+    npm install -g shrimp-health
     shrimp check --threshold 80 --json > health-report.json
 ```
 
@@ -309,7 +309,7 @@ Memory usage: <200MB typical
 ## 🛠️ API Usage
 
 ```typescript
-import { ShrimpHealth } from '@shrimphealth/cli';
+import { ShrimpHealth } from 'shrimp-health';
 
 const shrimp = new ShrimpHealth({
   sourceRoot: './src',
