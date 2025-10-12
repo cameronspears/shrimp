@@ -38,6 +38,7 @@ export class CodebaseMaintenance {
   private sourceRoot: string;
   private recommendations: string[] = [];
   private shouldAutoFix: boolean = false;
+  private silent: boolean = false;
   private details: MaintenanceResult['details'] = {
     deadCodeFiles: [],
     debugStatements: [],
@@ -51,13 +52,15 @@ export class CodebaseMaintenance {
     namingInconsistencies: [],
   };
 
-  constructor(sourceRoot: string = '.', autoFix: boolean = false) {
+  constructor(sourceRoot: string = '.', autoFix: boolean = false, silent: boolean = false) {
     this.sourceRoot = path.resolve(sourceRoot);
     this.shouldAutoFix = autoFix;
+    this.silent = silent;
   }
 
   async run(): Promise<MaintenanceResult> {
-    const banner = `
+    if (!this.silent) {
+      const banner = `
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                                                                       ║
 ║   ███████╗██╗  ██╗██████╗ ██╗███╗   ███╗██████╗                      ║
@@ -71,10 +74,11 @@ export class CodebaseMaintenance {
 ║                                                                       ║
 ╚═══════════════════════════════════════════════════════════════════════╝
     `;
-    console.log(banner);
-    console.log(
-      '[ENHANCED] Bug Detection | Performance Analysis | Code Consistency | Import Optimization | Next.js Best Practices\n'
-    );
+      console.log(banner);
+      console.log(
+        '[ENHANCED] Bug Detection | Performance Analysis | Code Consistency | Import Optimization | Next.js Best Practices\n'
+      );
+    }
 
     const startTime = Date.now();
 
@@ -84,11 +88,13 @@ export class CodebaseMaintenance {
 
       const summary = `Health Check completed in ${duration}ms - Score: ${healthScore}/100`;
 
-      console.log(`\n[OK] ${summary}`);
+      if (!this.silent) {
+        console.log(`\n[OK] ${summary}`);
 
-      if (this.recommendations.length > 0) {
-        console.log('\n[RECOMMENDATIONS]:');
-        this.recommendations.forEach((rec) => console.log(`  - ${rec}`));
+        if (this.recommendations.length > 0) {
+          console.log('\n[RECOMMENDATIONS]:');
+          this.recommendations.forEach((rec) => console.log(`  - ${rec}`));
+        }
       }
 
       return {
@@ -99,7 +105,9 @@ export class CodebaseMaintenance {
         details: this.details,
       };
     } catch (error) {
-      console.error('\n❌ Health check failed:', error);
+      if (!this.silent) {
+        console.error('\n❌ Health check failed:', error);
+      }
 
       return {
         success: false,
@@ -118,7 +126,8 @@ export class CodebaseMaintenance {
       this.sourceRoot,
       this.shouldAutoFix,
       this.details,
-      this.recommendations
+      this.recommendations,
+      this.silent
     );
 
     // Core checks (existing)
@@ -144,7 +153,9 @@ export class CodebaseMaintenance {
   }
 
   private async checkForTodoComments(): Promise<number> {
-    console.log('[SCAN] Scanning for TODO/FIXME comments...');
+    if (!this.silent) {
+      console.log('[SCAN] Scanning for TODO/FIXME comments...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -182,8 +193,10 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const todoCount = this.details?.todoComments.length || 0;
       this.recommendations.push(`Address ${todoCount} TODO/FIXME comments`);
-      console.log(`  [!] Found ${todoCount} TODO/FIXME comments`);
-    } else {
+      if (!this.silent) {
+        console.log(`  [!] Found ${todoCount} TODO/FIXME comments`);
+      }
+    } else if (!this.silent) {
       console.log('  [OK] No outstanding TODO comments found');
     }
 
@@ -191,7 +204,9 @@ export class CodebaseMaintenance {
   }
 
   private async checkForOutdatedPatterns(): Promise<number> {
-    console.log('[SCAN] Checking for outdated patterns...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking for outdated patterns...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -239,8 +254,10 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const outdatedCount = this.details?.outdatedComments.length || 0;
       this.recommendations.push(`Modernize ${outdatedCount} outdated code patterns`);
-      console.log(`  [!] Found ${outdatedCount} outdated patterns`);
-    } else {
+      if (!this.silent) {
+        console.log(`  [!] Found ${outdatedCount} outdated patterns`);
+      }
+    } else if (!this.silent) {
       console.log('  [OK] Code patterns look modern');
     }
 
@@ -248,7 +265,9 @@ export class CodebaseMaintenance {
   }
 
   private async checkNamingConsistency(): Promise<number> {
-    console.log('[SCAN] Checking naming consistency...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking naming consistency...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -293,8 +312,10 @@ export class CodebaseMaintenance {
     if (issues > 0) {
       const inconsistentCount = this.details?.namingInconsistencies.length || 0;
       this.recommendations.push(`Fix ${inconsistentCount} naming inconsistencies`);
-      console.log(`  [!] Found ${inconsistentCount} naming inconsistencies`);
-    } else {
+      if (!this.silent) {
+        console.log(`  [!] Found ${inconsistentCount} naming inconsistencies`);
+      }
+    } else if (!this.silent) {
       console.log('  [OK] Naming conventions look consistent');
     }
 

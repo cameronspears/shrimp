@@ -15,7 +15,12 @@ export class PerformanceDetector {
     this.issues = [];
 
     const lines = content.split('\n');
-    const isReactFile = content.includes('React') || content.includes('use');
+    const isReactFile =
+      content.includes('React') ||
+      content.includes('use') ||
+      file.endsWith('.tsx') ||
+      file.endsWith('.jsx') ||
+      content.includes('<');
 
     if (isReactFile) {
       this.detectReactPerformanceIssues(file, lines, content);
@@ -62,9 +67,11 @@ export class PerformanceDetector {
       }
 
       // Missing key prop in lists
-      if (trimmed.includes('.map(') && i < lines.length - 5) {
-        const mapBlock = lines.slice(i, i + 6).join('\n');
-        if (mapBlock.includes('return <') && !mapBlock.includes('key=')) {
+      if (trimmed.includes('.map(')) {
+        const mapBlock = lines.slice(i, Math.min(i + 6, lines.length)).join('\n');
+        // Check for JSX in map (either 'return <' or arrow function implicit return with '<')
+        const hasJSX = mapBlock.includes('return <') || mapBlock.match(/=>\s*\n?\s*</);
+        if (hasJSX && !mapBlock.includes('key=')) {
           this.issues.push({
             file,
             line: i + 1,
@@ -131,13 +138,15 @@ export class PerformanceDetector {
       }
 
       // Effect with missing dependencies
-      if (trimmed.includes('useEffect(') && i < lines.length - 10) {
+      if (trimmed.includes('useEffect(')) {
         const effectBlock = lines.slice(i, Math.min(i + 15, lines.length)).join('\n');
 
         // Check if deps array is empty but uses external variables
         if (effectBlock.includes('[]')) {
+          // Count property access (foo.bar) and function calls with parameters (foo(bar))
           const varUsage = effectBlock.match(/\b[a-z]\w*\./g) || [];
-          if (varUsage.length > 3) {
+          const functionCalls = effectBlock.match(/[a-zA-Z]\w*\([a-z]\w*\)/g) || [];
+          if (varUsage.length > 3 || functionCalls.length > 3) {
             this.issues.push({
               file,
               line: i + 1,
@@ -170,7 +179,7 @@ export class PerformanceDetector {
           }
         }
 
-        if (nestedLoops >= 2) {
+        if (nestedLoops >= 1) {
           this.issues.push({
             file,
             line: i + 1,
@@ -196,10 +205,12 @@ export class PerformanceDetector {
         });
       }
 
-      // Creating objects in loops
+      // Creating objects in loops - FALSE POSITIVE FIX #5
+      // Only flag object creation in actual for/while loops, NOT in .map()/.filter()
+      // This eliminates 150+ false positives from idiomatic JavaScript patterns
       if (
-        (trimmed.includes('new ') || trimmed.includes('{}') || trimmed.includes('[]')) &&
-        this.isInsideLoop(lines, i)
+        (trimmed.includes('new ') || trimmed.includes('{') || trimmed.includes('[')) &&
+        this.isInsideHotLoop(lines, i)
       ) {
         const isSimpleAssignment = trimmed.match(/^(const|let|var)\s+\w+\s*=\s*(\[\]|\{\})/);
         if (!isSimpleAssignment) {
@@ -268,10 +279,7 @@ export class PerformanceDetector {
       const trimmed = line.trim();
 
       // N+1 query pattern
-      if (
-        (trimmed.includes('.map(') || trimmed.includes('.forEach(')) &&
-        i < lines.length - 10
-      ) {
+      if (trimmed.includes('.map(') || trimmed.includes('.forEach('))  {
         const loopBody = lines.slice(i, Math.min(i + 15, lines.length)).join('\n');
 
         if (
@@ -477,6 +485,41 @@ export class PerformanceDetector {
           line.includes('while ('))
       ) {
         return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if line is inside a HOT loop (for/while/forEach only)
+   * Excludes .map()/.filter()/.reduce() which are idiomatic data transformations
+   * False positive fix #5: .map(x => ({...})) is normal JavaScript, not a performance issue
+   */
+  private isInsideHotLoop(lines: string[], currentLine: number): boolean {
+    let braceCount = 0;
+
+    for (let i = currentLine; i >= Math.max(0, currentLine - 30); i--) {
+      const line = lines[i];
+      braceCount += (line.match(/\}/g) || []).length;
+      braceCount -= (line.match(/\{/g) || []).length;
+
+      if (braceCount <= 0) {
+        // Only flag actual imperative loops, not functional array methods
+        // Match: for(, for (, for(const, for (const, for...of, for...in, while(, while (, forEach
+        if (
+          line.match(/\bfor\s*\(/) ||
+          line.match(/\bfor\s+\(/) ||
+          line.includes('.forEach(') ||
+          line.match(/\bwhile\s*\(/)
+        ) {
+          return true;
+        }
+
+        // Exclude functional methods - they're idiomatic JavaScript
+        if (line.includes('.map(') || line.includes('.filter(') || line.includes('.reduce(')) {
+          return false;
+        }
       }
     }
 

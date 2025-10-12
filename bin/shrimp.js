@@ -36,16 +36,23 @@ program
   .option('-t, --threshold <score>', 'Minimum health score required', '0')
   .option('--json', 'Output results as JSON')
   .action(async (options) => {
-    const spinner = ora('Running health check...').start();
+    const isJsonMode = options.json;
+    const spinner = !isJsonMode ? ora('Running health check...').start() : null;
 
     try {
       const shrimp = new ShrimpHealth();
-      const result = await shrimp.check(options.path);
+      const result = await shrimp.check(options.path, false, isJsonMode);
 
-      spinner.stop();
+      spinner?.stop();
 
-      if (options.json) {
+      if (isJsonMode) {
         console.log(JSON.stringify(result, null, 2));
+        // Check threshold in JSON mode
+        const threshold = parseInt(options.threshold, 10);
+        if (result.healthScore < threshold) {
+          process.exit(1);
+        }
+        process.exit(0);
         return;
       }
 
@@ -63,8 +70,12 @@ program
 
       process.exit(0);
     } catch (error) {
-      spinner.stop();
-      console.error(chalk.red('Error:'), error.message);
+      spinner?.stop();
+      if (isJsonMode) {
+        console.log(JSON.stringify({ success: false, error: error.message }, null, 2));
+      } else {
+        console.error(chalk.red('Error:'), error.message);
+      }
       process.exit(1);
     }
   });
@@ -74,7 +85,7 @@ program
   .command('fix')
   .description('Auto-fix issues in your codebase')
   .option('-p, --path <path>', 'Path to source directory', '.')
-  .option('--claude', 'Use Claude AI for complex fixes (Pro only)')
+  .option('--claude', 'Use Claude AI for complex fixes (requires ANTHROPIC_API_KEY)')
   .option('--dry-run', 'Show what would be fixed without making changes')
   .action(async (options) => {
     const spinner = ora('Analyzing and fixing issues...').start();
@@ -82,23 +93,19 @@ program
     try {
       const shrimp = new ShrimpHealth();
 
-      if (options.claude) {
-        // Check if user has Pro license
-        const license = await shrimp.getLicense();
-        if (!license.features.claudeIntegration) {
-          spinner.stop();
-          console.log(
-            boxen(
-              chalk.yellow(
-                '[!] Claude AI integration is a Pro feature\n\n' +
-                  'Upgrade to Pro for $6/month:\n' +
-                  chalk.cyan('https://shrimphealth.com/pricing')
-              ),
-              { padding: 1, margin: 1, borderColor: 'yellow' }
-            )
-          );
-          process.exit(1);
-        }
+      if (options.claude && !process.env.ANTHROPIC_API_KEY) {
+        spinner.stop();
+        console.log(
+          boxen(
+            chalk.yellow(
+              '[!] Claude AI integration requires ANTHROPIC_API_KEY\n\n' +
+                'Set your API key:\n' +
+                chalk.cyan('export ANTHROPIC_API_KEY=your_key_here')
+            ),
+            { padding: 1, margin: 1, borderColor: 'yellow' }
+          )
+        );
+        process.exit(1);
       }
 
       const result = await shrimp.check(options.path, true);
@@ -122,62 +129,42 @@ program
     }
   });
 
-// Activate command
+// Activate command (kept for backwards compatibility, but is a no-op)
 program
   .command('activate')
-  .description('Activate a Pro or Team license')
-  .argument('<license-key>', 'Your license key')
-  .argument('<email>', 'Your email address')
+  .description('No longer needed - Shrimp Health is fully open source!')
+  .argument('[license-key]', 'No longer needed')
+  .argument('[email]', 'No longer needed')
   .action(async (licenseKey, email) => {
-    const spinner = ora('Activating license...').start();
-
-    try {
-      const shrimp = new ShrimpHealth();
-      const success = await shrimp.activate(licenseKey, email);
-
-      spinner.stop();
-
-      if (success) {
-        const license = await shrimp.getLicense();
-        console.log(
-          boxen(
-            chalk.green('[SUCCESS] License activated!\n\n') +
-              `Tier: ${chalk.bold(license.tier.toUpperCase())}\n` +
-              `Email: ${email}\n\n` +
-              chalk.dim('You now have access to all Pro features'),
-            { padding: 1, margin: 1, borderColor: 'green' }
-          )
-        );
-      } else {
-        console.log(chalk.red('Failed to activate license. Please check your key and try again.'));
-        process.exit(1);
-      }
-    } catch (error) {
-      spinner.stop();
-      console.error(chalk.red('Error:'), error.message);
-      process.exit(1);
-    }
+    console.log(
+      boxen(
+        chalk.green('[INFO] Shrimp Health is fully open source!\n\n') +
+          'All features are now free and unlimited.\n' +
+          'No license activation needed.\n\n' +
+          chalk.cyan('Just run: shrimp check'),
+        { padding: 1, margin: 1, borderColor: 'green' }
+      )
+    );
   });
 
 // Status command
 program
   .command('status')
-  .description('Show license and usage information')
+  .description('Show usage statistics')
   .action(async () => {
     try {
       const shrimp = new ShrimpHealth();
-      const license = await shrimp.getLicense();
       const stats = shrimp.getStats();
 
       console.log(chalk.cyan(SHRIMP_LOGO));
       console.log(
         boxen(
           chalk.bold('STATUS\n\n') +
-            `License: ${chalk.bold(license.tier.toUpperCase())}\n` +
-            `Checks this month: ${stats.checksThisMonth}${license.tier === 'free' ? `/${license.features.maxChecksPerMonth}` : ' (unlimited)'}\n` +
+            chalk.green('Open Source - All Features Unlimited\n\n') +
+            `Checks this month: ${stats.checksThisMonth}\n` +
             `Total checks: ${stats.totalChecks}\n` +
             `Average health: ${chalk.bold(stats.avgHealthScore.toFixed(1))}/100\n\n` +
-            chalk.dim(license.tier === 'free' ? 'Upgrade to Pro: https://shrimphealth.com/pricing' : ''),
+            chalk.dim('Star us on GitHub: https://github.com/yourusername/shrimp-health'),
           { padding: 1, margin: 1, borderColor: 'cyan' }
         )
       );

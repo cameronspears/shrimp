@@ -1,193 +1,318 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**Project Mission:** Quality control copilot for Claude Code users. Helps vibe coders maintain Next.js 15+ App Router best practices, Vercel deployment standards, WCAG 2.0 compliance, and code quality without manual cleanup.
 
-## Project Overview
+## What This Tool Does
 
-Shrimp Health is an AI-powered code health monitoring CLI tool with automated fixes. It analyzes codebases for bugs, performance issues, code consistency, import problems, accessibility issues (WCAG), and Next.js best practices. The tool provides a 0-100 health score and can automatically fix issues either through simple pattern matching or by invoking Claude AI for complex fixes.
+Shrimp Health is **NOT** a general-purpose linter competing with ESLint. It's a **Claude Code companion** that catches the specific issues Claude Code users face when building with AI:
 
-**Key differentiator:** Shrimp includes an MCP (Model Context Protocol) server that enables Claude Code to run health checks and apply fixes directly within conversations.
+**Core Value Proposition:**
+- Next.js 15+ App Router patterns (Server Components, streaming, proper data fetching)
+- Vercel deployment best practices (ISR, edge functions, middleware)
+- WCAG 2.0 accessibility compliance (real issues, not noise)
+- Code quality issues Claude tends to miss (empty catch blocks, missing error handling, performance anti-patterns)
+- Consistency across AI-generated code
+
+## Architecture Overview
+
+### Entry Points
+- `bin/shrimp.js` - CLI (Commander.js)
+- `src/index.ts` - Programmatic API (ShrimpHealth class)
+- `mcp-server/src/index.ts` - MCP server for Claude Code integration
+
+### Core Flow
+```
+ShrimpHealth.check()
+  → CodebaseMaintenance.run()
+    → ShrimpChecks.analyzeCodebaseHealth()
+      → Run all detectors in parallel
+      → Aggregate results
+      → Calculate 0-100 health score
+```
+
+### Detectors (src/detectors/)
+
+All detectors follow the same pattern:
+- `analyze(file, content)` → returns issues array
+- `getSeverityCount()` → returns {error, warning, info}
+- `getIssues()` → returns all issues
+- Issues are aggregated and scored in src/core/health-check.ts
+
+**Available Detectors:**
+1. **bug-detector-ast.ts** - AST-based bug detection (empty catch, async errors, React hooks violations)
+2. **performance-detector.ts** - React performance issues (inline objects, missing memoization)
+3. **import-detector.ts** - Unused imports, circular deps, organization
+4. **consistency-detector.ts** - Naming conventions, patterns
+5. **nextjs-detector.ts** - Next.js 15 best practices (Server/Client components, Image/Font optimization)
+6. **wcag-detector.ts** - WCAG 2.0 compliance (alt text, keyboard nav, ARIA)
+
+### Health Score Calculation
+
+Starts at 100, deducts points per issue type:
+- Bugs: critical=5pts, warning=2pts, info=0.5pts (cap: 20)
+- Performance: critical=4pts, moderate=2pts, minor=0.5pts (cap: 15)
+- Next.js: error=3pts, warning=1pt, info=0.2pts (cap: 15)
+- Consistency: 1pt per 3 issues (cap: 10)
+- Imports: unused=0.5pts, organization=0.3pts (cap: 10)
+- Traditional checks (large files, complexity): various caps
+
+See src/core/health-analyzer.ts for full scoring logic.
+
+### Auto-Fix System (src/core/auto-fixer.ts)
+
+Confidence-scored fixes (0.0-1.0):
+- **99%+**: Always safe (unused imports, empty aria-label removal)
+- **90-98%**: Safe with review (empty catch comments, tabIndex fixes)
+- **80-89%**: Needs confirmation (missing alt text placeholders)
+- **<80%**: Manual only (complex refactors)
+
+Constructor: `new AutoFixer(dryRun: boolean, minConfidence: number)`
+- Set `dryRun=true` for preview mode
+- Set `minConfidence` threshold (90+ recommended for production)
+
+### File Watching (src/core/file-watcher.ts)
+
+Real-time monitoring via chokidar:
+- Debounced checks (500ms default)
+- Maintains health score history
+- Lightweight pattern matching (no full AST parse)
+- Memory-limited issue tracking (max 1000 issues)
+- Singleton pattern for MCP integration
+
+### MCP Server (mcp-server/)
+
+8 tools for Claude Code integration:
+- `shrimp_check` - Run health checks
+- `shrimp_fix` - Auto-fix with dry-run support
+- `shrimp_status` - Quick health snapshot
+- `shrimp_explain` - Explain issue types
+- `shrimp_watch_start` - Start file watching
+- `shrimp_watch_stop` - Stop watching
+- `shrimp_get_live_status` - Get cached watcher status
+
+## Production Readiness Roadmap
+
+### Current Status: **Prototype** (Week 0)
+
+**Completed:**
+- ✅ Core architecture
+- ✅ 6 detectors (bug, performance, import, consistency, Next.js, WCAG)
+- ✅ Auto-fixer with confidence scoring
+- ✅ File watcher for real-time monitoring
+- ✅ MCP server integration
+- ✅ Auto-fixer tests (17 tests)
+
+**In Progress:**
+- 🔄 Test coverage (17 tests → 300+ tests target)
+- 🔄 False positive validation
+- 🔄 CI/CD pipeline
+
+### Week 1-2: Test Foundation
+**Priority: BugDetectorAST tests (this is the core value)**
+
+- [ ] 50 tests for BugDetectorAST (empty catch, async errors, hooks, security, logic errors, type safety)
+- [ ] 25 tests for PerformanceDetector
+- [ ] 30 tests for WCAGDetector
+- [ ] 25 tests for NextJSDetector
+- [ ] 20 tests for ImportDetector
+- [ ] 20 tests for ConsistencyDetector
+- [ ] 25 tests for FileWatcher
+- [ ] 20 tests for CLI commands (integration tests)
+- [ ] 15 tests for health scoring logic
+
+**Target: 230+ tests by end of Week 2**
+
+### Week 3-4: Validation & CI
+
+- [ ] Run against 10 real Next.js 15 projects
+- [ ] Measure false positive rates (target: <10%)
+- [ ] GitHub Actions CI/CD with coverage enforcement (80%+)
+- [ ] Performance benchmarks (target: <50ms per file)
+- [ ] Self-dogfooding (run Shrimp on itself in CI)
+
+### Week 5-6: Polish & Launch
+
+- [ ] Fix top 10 false positive patterns
+- [ ] Improve error messages and UX
+- [ ] Complete API documentation
+- [ ] Simplify or remove licensing system
+- [ ] Publish to npm as @shrimphealth/cli
+- [ ] Create launch materials (demo video, docs site)
 
 ## Development Commands
 
-### Build & Development
+### Build & Dev
 ```bash
-# Build TypeScript to dist/
-bun run build
-
-# Watch mode for development
-bun run dev
-
-# Build MCP server
-cd mcp-server && bun install && bun run build
+bun run build        # Build TypeScript to dist/
+bun run dev          # Watch mode
+cd mcp-server && bun install && bun run build  # Build MCP server
 ```
 
 ### Testing
 ```bash
-# Run all tests
-bun test
-
-# Run unit tests only
-bun test:unit
-
-# Run integration tests only
-bun test:integration
-
-# Watch mode
-bun test:watch
-
-# Generate test report
-bun run test:report
-
-# Track quality trends
-bun run test:track
+bun test             # Run all tests
+bun test:unit        # Unit tests only
+bun test:integration # Integration tests only
+bun test:watch       # Watch mode
+bun test --coverage  # With coverage report
 ```
 
 ### CLI Usage
 ```bash
-# Run health check
-./bin/shrimp.js check
-
-# Auto-fix issues
-./bin/shrimp.js fix
-
-# Use Claude AI for complex fixes (requires ANTHROPIC_API_KEY)
-./bin/shrimp.js fix --claude
-
-# Check with threshold (exits 1 if below threshold)
-./bin/shrimp.js check --threshold 85
-
-# JSON output
-./bin/shrimp.js check --json
-
-# License activation
-./bin/shrimp.js activate <license-key> <email>
-
-# Status/usage info
-./bin/shrimp.js status
+./bin/shrimp.js check              # Health check
+./bin/shrimp.js fix                # Auto-fix (simple)
+./bin/shrimp.js fix --claude       # Auto-fix with Claude AI (Pro)
+./bin/shrimp.js check --threshold 85  # With threshold
+./bin/shrimp.js check --json       # JSON output
 ```
 
-## Architecture
+## Dos & Don'ts for Claude Code
 
-### Core Components
+### ✅ DO
 
-**Entry Points:**
-- `bin/shrimp.js` - CLI entry point using Commander.js
-- `src/index.ts` - Main programmatic API (`ShrimpHealth` class)
-- `mcp-server/src/index.ts` - MCP server for Claude Code integration
+1. **Write comprehensive tests** - We need 300+ tests to be production-ready. Always write tests for new detectors or bug fixes.
 
-**Health Check Flow:**
-1. `ShrimpHealth.check()` validates license and quota
-2. Creates `CodebaseMaintenance` instance (src/core/health-check.ts)
-3. `CodebaseMaintenance.run()` orchestrates all checks via `ShrimpChecks`
-4. `ShrimpChecks` (src/core/health-analyzer.ts) runs all detectors
-5. Results aggregated into `MaintenanceResult` with 0-100 health score
+2. **Focus on high-signal issues** - Only flag things that Claude Code users will actually want to fix. We're not ESLint.
 
-**Detector System:**
-All detectors live in `src/detectors/` and follow a common pattern:
-- Analyze individual files or entire codebase
-- Return issues with severity levels (error/warning/info or critical/moderate/minor)
-- Track severity counts for scoring
-- Group issues by category
+3. **Validate against real Next.js projects** - Test detectors against real repos, not just synthetic examples.
 
-Available detectors:
-- `bug-detector.ts` - Empty catch blocks, null handling, type issues
-- `performance-detector.ts` - Inline objects, missing memoization, expensive loops
-- `import-detector.ts` - Unused imports, circular dependencies, organization
-- `consistency-detector.ts` - Naming conventions, patterns, file organization
-- `nextjs-detector.ts` - Server/client components, image/font optimization
-- `wcag-detector.ts` - Accessibility issues (alt text, ARIA, keyboard nav)
+4. **Optimize for false positives, not false negatives** - It's better to miss some issues than to flag too much noise. Precision > Recall.
 
-### Health Score Calculation
+5. **Use confidence scoring for auto-fixes** - Never auto-fix with <90% confidence without user approval.
 
-Starting from 100, points are deducted by each check:
-- Bug issues: critical=5pts, warning=2pts, info=0.5pts (capped at 20)
-- Performance: critical=4pts, moderate=2pts, minor=0.5pts (capped at 15)
-- Next.js: errors=3pts, warnings=1pt, info=0.2pts (capped at 15)
-- Consistency: 1pt per 3 issues (capped at 10)
-- Imports: unused=0.5pts each, organization=0.3pts (capped at 10)
-- Traditional checks (TODO comments, large files, complexity): various caps at 4-15pts
+6. **Respect the file filtering** - Always use `shouldIgnoreFile()` to skip node_modules, .next, dist, test files, and Shrimp's own source.
 
-Final score: `Math.max(0, Math.min(100, score))`
+7. **Maintain AST-based detection** - Use `@typescript-eslint/typescript-estree` for accurate pattern matching, not just regex.
 
-### Auto-Fix System
+8. **Dogfood the tool** - Run Shrimp on itself. If we flag our own code incorrectly, that's a bug.
 
-**src/core/auto-fixer.ts:**
-- Provides confidence-scored fixes (0.0-1.0)
-- Safe fixes (confidence ≥ 0.9): unused imports, console.log removal, empty dirs
-- Medium confidence (0.7-0.89): simple pattern replacements
-- Low confidence (<0.7): marked for manual review or Claude AI
+9. **Keep scoring transparent** - Health score should be explainable. Document penalty values clearly.
 
-**Claude Integration (src/integrations/claude-integration.ts):**
-- Invokes Claude API to fix complex issues
-- Requires `ANTHROPIC_API_KEY` and Pro license
-- Used via `--claude` flag
+10. **Test for performance** - Every detector should run in <50ms on typical files. Profile and optimize.
 
-### Licensing System
+### ❌ DON'T
 
-**Free Tier:** 50 checks/month, basic detectors
-**Pro ($6/mo):** Unlimited checks, Claude AI fixes, advanced detectors, git hooks
-**Team ($24/mo):** Pro + multi-repo, team dashboard, CI/CD integration
+1. **Don't add generic linting rules** - We're not ESLint. Only add checks that help Claude Code users with Next.js/Vercel/WCAG.
 
-Files:
-- `src/licensing/license-validator.ts` - Validates license and quotas
-- `src/licensing/usage-tracker.ts` - Tracks usage stats using `conf` package
+2. **Don't flag style preferences** - No tabs vs spaces, no semicolon debates. Focus on correctness and best practices.
 
-License data stored in user config dir (~/.config/shrimp-health-nodejs/)
+3. **Don't parse files we shouldn't analyze** - Respect `shouldIgnoreFile()`. Never analyze node_modules, .next, dist, .git.
 
-### MCP Server
+4. **Don't create tests without running them** - Always verify tests pass before committing.
 
-**Location:** `mcp-server/`
+5. **Don't tune scores to be artificially high** - Health scores should reflect reality. Don't add "reduced penalty" hacks to make projects look better.
 
-Exposes 8 tools for Claude Code integration:
-- `shrimp_check` - Run health checks
-- `shrimp_fix` - Auto-fix issues (with dry-run support)
-- `shrimp_status` - Quick health status
-- `shrimp_explain` - Explain issue types
-- `shrimp_watch_start` - Start real-time file watching
-- `shrimp_watch_stop` - Stop file watching
-- `shrimp_get_live_status` - Get cached watcher status
+6. **Don't auto-fix without confidence** - If you can't give a fix 90%+ confidence, don't do it automatically.
 
-Implementation uses `@modelcontextprotocol/sdk` for stdio transport.
+7. **Don't add features without tests** - No new detectors, no new fixes, nothing without comprehensive test coverage.
 
-### File Watching (Real-time Monitoring)
+8. **Don't ignore performance** - We claim "<100ms typically" - make that real. Profile everything.
 
-**src/core/file-watcher.ts:**
-- Uses `chokidar` for file system watching
-- Debounces checks (1 second default)
-- Maintains health score history
-- Singleton pattern via `getWatcherInstance()`
-- Started/stopped by MCP tools: `shrimp_watch_start`, `shrimp_watch_stop`
+9. **Don't break the MCP server** - The MCP integration is a key differentiator. Test it works with Claude Code.
 
-## Important Patterns
+10. **Don't document features that don't exist** - README references pricing pages, dashboards, etc. that aren't built. Fix or remove.
 
-### File Filtering
-Most checks use `shouldIgnoreFile()` to skip:
-- Shrimp's own source files (shrimp, health-check, health-analyzer, detectors)
-- node_modules, .next, .git, dist
-- Generated files (*.generated.*)
-- Test files (when appropriate)
+## Detector Development Guide
 
-Always respect this pattern when adding new detectors.
+### Adding a New Detector
 
-### Testing Strategy
+1. Create `src/detectors/new-detector.ts`:
+```typescript
+export class NewDetector {
+  private issues: Issue[] = [];
 
-**Unit Tests (tests/unit/):**
-- Test individual detectors in isolation
-- Use synthetic code samples
-- Fast execution
+  async analyze(file: string, content: string): Promise<Issue[]> {
+    // Parse with AST if needed
+    const ast = parseTypeScript(content);
 
-**Integration Tests (tests/integration/):**
-- Test full health check flow
-- Use real project files
-- Verify end-to-end behavior
+    // Detect issues
+    // ...
 
-**Baselines (tests/baselines/):**
-- Track quality metrics over time
-- Detect regressions in health scores
-- Auto-generated by test:track script
+    return this.issues;
+  }
 
-### Configuration
+  getSeverityCount() {
+    return {
+      error: this.issues.filter(i => i.severity === 'error').length,
+      warning: this.issues.filter(i => i.severity === 'warning').length,
+      info: this.issues.filter(i => i.severity === 'info').length,
+    };
+  }
+}
+```
+
+2. Add to `ShrimpChecks` (src/core/health-analyzer.ts):
+```typescript
+async checkNewFeature(): Promise<number> {
+  const detector = new NewDetector();
+  // ... run detector
+  return Math.min(deduction, CAP);
+}
+```
+
+3. Call from `analyzeCodebaseHealth()` in src/core/health-check.ts
+
+4. Write 20+ tests in `tests/unit/new-detector.test.ts`
+
+5. Add to `shouldIgnoreFile()` if detector analyzes itself
+
+### Detector Testing Checklist
+
+For every detector, test:
+- ✅ True positives (finds real issues)
+- ✅ True negatives (doesn't flag correct code)
+- ✅ False positive cases (common patterns that look wrong but aren't)
+- ✅ Edge cases (empty files, malformed syntax, etc.)
+- ✅ Performance (should handle 1000+ line files quickly)
+- ✅ Severity accuracy (is "error" really an error?)
+
+## File Structure Reference
+
+```
+shrimp-health/
+├── bin/
+│   └── shrimp.js           # CLI entry point
+├── src/
+│   ├── core/
+│   │   ├── auto-fixer.ts       # Confidence-scored fixes
+│   │   ├── file-watcher.ts     # Real-time monitoring
+│   │   ├── health-analyzer.ts  # ShrimpChecks orchestration
+│   │   └── health-check.ts     # CodebaseMaintenance
+│   ├── detectors/
+│   │   ├── bug-detector-ast.ts     # AST-based bug detection
+│   │   ├── consistency-detector.ts # Naming, patterns
+│   │   ├── import-detector.ts      # Unused imports, circular deps
+│   │   ├── nextjs-detector.ts      # Next.js 15 best practices
+│   │   ├── performance-detector.ts # React performance
+│   │   └── wcag-detector.ts        # WCAG 2.0 compliance
+│   ├── integrations/
+│   │   └── claude-integration.ts # Claude API for complex fixes
+│   ├── licensing/
+│   │   ├── license-validator.ts  # License checks (needs work)
+│   │   └── usage-tracker.ts      # Usage stats
+│   ├── types/
+│   │   └── index.ts            # TypeScript interfaces
+│   ├── utils/
+│   │   ├── ast-parser.ts       # AST parsing utilities
+│   │   └── logger.ts           # Structured logging
+│   └── index.ts                # Public API
+├── tests/
+│   ├── unit/
+│   │   ├── auto-fixer.test.ts       # ✅ 17 tests
+│   │   └── bug-detector-ast.test.ts # ✅ 1 test
+│   └── integration/
+│       └── real-world.test.ts       # ✅ 1 test (gielinor-gains)
+├── mcp-server/              # MCP server for Claude Code
+│   ├── src/
+│   │   └── index.ts         # 8 MCP tools
+│   ├── README.md
+│   └── SETUP.md
+├── README.md                # User-facing docs
+├── CLAUDE.md               # This file
+└── package.json
+```
+
+## Configuration
 
 Projects can include `.shrimprc.json`:
 ```json
@@ -200,101 +325,72 @@ Projects can include `.shrimprc.json`:
     "wcag": true,
     "nextjs": true
   },
-  "ignore": ["node_modules", "dist", ".next"],
+  "ignore": ["node_modules", "dist", ".next", "*.test.ts"],
   "thresholds": {
     "minimum": 80,
     "target": 95
   },
   "autofix": {
     "enabled": true,
-    "claude": false
+    "minConfidence": 90
   }
 }
 ```
 
-Config is loaded by detectors/checks as needed.
+## Key Technical Decisions
 
-## Adding New Detectors
+### Why AST-based detection?
+Regex-based detection has too many false positives. AST parsing with `@typescript-eslint/typescript-estree` gives us accurate pattern matching at acceptable performance cost.
 
-1. Create `src/detectors/new-detector.ts` following existing pattern:
-   - Export a class with `analyze()` or `analyzeFile()` method
-   - Implement severity tracking
-   - Provide `getIssues()` and `getSeverityCount()` methods
+### Why confidence scoring for fixes?
+Auto-fixing is dangerous. Confidence scores let users control risk tolerance. 99%+ confidence fixes are safe to run automatically. Lower confidence fixes need review.
 
-2. Add to `ShrimpChecks` in src/core/health-analyzer.ts:
-   - Import detector
-   - Add `checkNewFeature()` method
-   - Call from `analyzeCodebaseHealth()` in src/core/health-check.ts
-   - Assign point values and cap
+### Why file watching?
+Claude Code users iterate quickly. Real-time feedback (via MCP) helps them catch issues as they code, not after.
 
-3. Export from src/index.ts
+### Why not use ESLint under the hood?
+ESLint is too general-purpose and too noisy. We need focused detection on Next.js 15 + Vercel + WCAG issues that Claude Code users actually face.
 
-4. Add filtering for self-checks to `shouldIgnoreFile()`
-
-5. Add tests in tests/unit/
-
-## TypeScript Configuration
-
-- Target: ES2022
-- Module: NodeNext (ESM with .js extensions in imports)
-- Output: dist/
-- Strict mode enabled
-- Always use `.js` extensions in import paths (TypeScript ESM requirement)
-
-## Dependencies
-
-**Core:**
-- `commander` - CLI framework
-- `chalk` - Terminal colors
-- `ora` - Spinners
-- `boxen` - Boxes
-- `chokidar` - File watching
-- `conf` - User config storage
-
-**MCP:**
-- `@modelcontextprotocol/sdk` - MCP protocol implementation
-- `zod` - Schema validation
-
-**Dev:**
-- `typescript` - Compiler
-- `@types/bun` - Bun runtime types (testing with Bun)
-
-## Testing with Bun
-
-This project uses Bun for testing (not Node.js):
-- Tests run with `bun test`
-- Bun provides built-in test runner
-- Much faster than Jest/Mocha
-- Native TypeScript support
+### Why MCP integration?
+This is the killer feature. Claude Code users can say "check my code quality" and Shrimp runs automatically. Seamless AI-assisted development.
 
 ## Common Gotchas
 
-1. **ESM Imports:** Always use `.js` extensions even for `.ts` files (TypeScript ESM requirement)
+1. **ESM Imports** - Always use `.js` extensions even for `.ts` files:
    ```typescript
-   import { foo } from './foo.js'; // Correct
-   import { foo } from './foo';    // Wrong
+   import { foo } from './foo.js';  // Correct
+   import { foo } from './foo';     // Wrong
    ```
 
-2. **Self-Analysis:** Shrimp ignores its own files to avoid recursive issues. When testing locally, make sure `shouldIgnoreFile()` is properly configured.
+2. **Self-Analysis** - Shrimp ignores its own files. When testing locally, `shouldIgnoreFile()` must be properly configured.
 
-3. **License Checks:** Most features require license validation. Free tier is limited to 50 checks/month.
+3. **License Checks** - Most features check licenses. Free tier is 50 checks/month. This needs to be simplified or removed.
 
-4. **Detector Performance:** Each detector is limited to analyzing a subset of files (typically 20-30) to keep checks fast (<100ms target).
+4. **Detector Performance** - Each detector is limited to ~20-30 files for speed. Must scale this for production.
 
-5. **MCP Server Path:** The MCP server uses relative paths to find the main CLI. Structure must remain: `mcp-server/build/index.js` → `../../bin/shrimp.js`
+5. **MCP Server Path** - MCP server uses relative paths to find the CLI. Don't break the structure: `mcp-server/build/index.js` → `../../bin/shrimp.js`
 
-## CI/CD Integration
+## Monitoring & Metrics
 
-For GitHub Actions:
-```yaml
-- name: Health Check
-  run: |
-    npm install -g @shrimphealth/cli
-    shrimp check --threshold 80 --json > health-report.json
-```
+**Track these metrics as we build:**
+- Test coverage (target: 80%+)
+- False positive rate (target: <10%)
+- Performance per file (target: <50ms)
+- Health score distribution (real projects should average 70-85, not 95+)
+- Issue detection counts by category
+- Auto-fix success rate
 
-For git hooks:
-```bash
-shrimp install-hooks  # Shows setup instructions
-# Or manually: npx husky add .husky/pre-commit "shrimp check --threshold 80"
-```
+## Next Steps (Priority Order)
+
+1. **Build BugDetectorAST test suite** (50 tests) - This is the core value prop
+2. **Add tests for other detectors** (100 tests total)
+3. **Set up CI/CD** with coverage enforcement
+4. **Validate against 10 real Next.js projects** - Measure false positives
+5. **Performance optimization** - Hit <50ms per file target
+6. **Simplify or remove licensing** - It's currently half-baked
+7. **Polish UX** - Better errors, progress indicators
+8. **Publish to npm** - @shrimphealth/cli
+
+---
+
+**Remember:** We're building a quality copilot for Claude Code users, not a general-purpose linter. Every feature should serve that mission.

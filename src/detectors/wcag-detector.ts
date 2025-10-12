@@ -875,7 +875,7 @@ export class WCAGDetector {
       const line = lines[i];
 
       // Check for invalid ARIA roles
-      const roleMatch = line.match(/role=["'](\w+)["']/);
+      const roleMatch = line.match(/role=["']([\w-]+)["']/);
       if (roleMatch) {
         const role = roleMatch[1];
         const validRoles = [

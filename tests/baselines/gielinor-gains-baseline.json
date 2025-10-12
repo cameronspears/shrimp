@@ -1,23 +1,20 @@
 {
-  "timestamp": "2025-10-11T18:06:55.882Z",
+  "timestamp": "2025-10-12T14:21:24.969Z",
   "totalFiles": 215,
-  "totalIssues": 841,
+  "totalIssues": 537,
   "issuesByCategory": {
-    "Logic Error": 393,
-    "Type Safety": 178,
-    "Error Handling": 71,
-    "React Performance": 98,
-    "Async/Await": 27,
-    "Code Quality": 21,
-    "Security": 8,
-    "Resource Leak": 6,
-    "Performance": 3,
-    "React Hooks": 36
+    "Type Safety": 239,
+    "Code Complexity": 176,
+    "Async/Await": 8,
+    "Error Handling": 84,
+    "Resource Leak": 8,
+    "React Hooks": 18,
+    "Dead Code": 4
   },
   "issuesBySeverity": {
-    "error": 117,
-    "warning": 372,
-    "info": 352
+    "error": 0,
+    "warning": 188,
+    "info": 349
   },
   "filesAnalyzed": 215,
   "version": "1.0.0"

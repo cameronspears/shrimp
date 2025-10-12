@@ -1,0 +1,79 @@
+version: 2
+
+updates:
+  # Main package dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "cameronspears"
+    assignees:
+      - "cameronspears"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "@typescript-eslint/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+      types:
+        patterns:
+          - "@types/*"
+
+  # MCP server dependencies
+  - package-ecosystem: "npm"
+    directory: "/mcp-server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "cameronspears"
+    assignees:
+      - "cameronspears"
+    commit-message:
+      prefix: "chore(mcp-deps)"
+      prefix-development: "chore(mcp-deps-dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "mcp-server"
+      - "automated"
+    groups:
+      mcp-sdk:
+        patterns:
+          - "@modelcontextprotocol/*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "cameronspears"
+    assignees:
+      - "cameronspears"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"

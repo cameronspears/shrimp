@@ -15,7 +15,9 @@ export class ImportDetector {
     const lines = content.split('\n');
 
     this.detectUnusedImports(file, lines, content);
-    this.detectImportOrganization(file, lines);
+    // DISABLED: Import organization is a stylistic preference, not a health issue
+    // False positive pattern #11: Flagging import order creates 1,200+ noise issues (93% of import detector output)
+    // this.detectImportOrganization(file, lines);
     this.detectCircularDependencies(file, lines);
     this.detectDuplicateImports(file, lines);
     this.detectHeavyImports(file, lines);
@@ -34,11 +36,16 @@ export class ImportDetector {
         const symbols: string[] = [];
 
         // Named imports: import { foo, bar } from 'baz'
+        // Also handle aliased imports: import { foo as bar } - we need to check for 'bar' usage
         const namedMatch = line.match(/import\s+\{([^}]+)\}\s+from/);
         if (namedMatch) {
           const namedImports = namedMatch[1]
             .split(',')
-            .map((s) => s.trim().split(' as ')[0].trim());
+            .map((s) => {
+              const parts = s.trim().split(' as ');
+              // If aliased, use the alias name; otherwise use the import name
+              return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+            });
           symbols.push(...namedImports);
         }
 
@@ -270,7 +277,7 @@ export class ImportDetector {
 
   private detectHeavyImports(file: string, lines: string[]): void {
     // Skip for component files where heavy libraries might be necessary
-    if (file.includes('/app/') || file.includes('/pages/')) return;
+    if (file.includes('/app/') || file.startsWith('app/') || file.includes('/pages/') || file.startsWith('pages/')) return;
 
     const heavyLibraries = [
       { name: 'lodash', alternative: 'Use native array methods or import specific functions' },

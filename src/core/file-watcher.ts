@@ -230,7 +230,8 @@ export class FileWatcher {
    * Handle file change event
    */
   private onFileChanged(filePath: string): void {
-    const fullPath = path.join(this.watchRoot, filePath);
+    // Chokidar provides absolute paths when watching a directory
+    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.watchRoot, filePath);
     this.pendingFiles.add(fullPath);
 
     // Debounce: wait for 500ms of silence before checking
@@ -247,7 +248,8 @@ export class FileWatcher {
    * Handle file deletion event
    */
   private onFileDeleted(filePath: string): void {
-    const fullPath = path.join(this.watchRoot, filePath);
+    // Chokidar provides absolute paths when watching a directory
+    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.watchRoot, filePath);
 
     // Remove issues for deleted file
     this.issues.delete(fullPath);

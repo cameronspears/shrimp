@@ -44,23 +44,14 @@ export class ShrimpHealth {
 
   /**
    * Run a health check on the codebase
+   * Licensing removed - unlimited checks for everyone
    */
-  async check(sourceRoot: string = '.', autoFix: boolean = false) {
-    // Validate license and check quota
-    const { allowed, remaining } = await this.validator.canRunCheck();
-
-    if (!allowed) {
-      throw new Error(
-        `Free tier limit reached (${remaining} checks remaining this month). Upgrade to Pro for unlimited checks.`
-      );
-    }
-
-    // Run the health check
-    const maintenance = new CodebaseMaintenance(sourceRoot, autoFix);
+  async check(sourceRoot: string = '.', autoFix: boolean = false, silent: boolean = false) {
+    // Run the health check (no license validation needed)
+    const maintenance = new CodebaseMaintenance(sourceRoot, autoFix, silent);
     const result = await maintenance.run();
 
-    // Track usage
-    this.validator.incrementCheckCount();
+    // Track usage for local stats only
     this.tracker.trackCheck(result.healthScore);
 
     return result;
@@ -68,6 +59,7 @@ export class ShrimpHealth {
 
   /**
    * Get license information
+   * Always returns unlimited enterprise tier
    */
   async getLicense() {
     return await this.validator.validateLicense();
@@ -82,6 +74,7 @@ export class ShrimpHealth {
 
   /**
    * Activate a license
+   * No-op - licensing removed
    */
   async activate(licenseKey: string, email: string) {
     return await this.validator.activateLicense(licenseKey, email);

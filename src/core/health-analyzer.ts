@@ -39,6 +39,7 @@ interface MaintenanceResult {
 export class ShrimpChecks {
   private sourceRoot: string;
   private shouldAutoFix: boolean;
+  private silent: boolean;
   private recommendations: string[] = [];
   private details: MaintenanceResult['details'];
 
@@ -46,16 +47,20 @@ export class ShrimpChecks {
     sourceRoot: string,
     autoFix: boolean = false,
     details: MaintenanceResult['details'],
-    recommendations: string[]
+    recommendations: string[],
+    silent: boolean = false
   ) {
     this.sourceRoot = sourceRoot;
     this.shouldAutoFix = autoFix;
     this.details = details;
     this.recommendations = recommendations;
+    this.silent = silent;
   }
 
   async checkForPotentialDeadCode(): Promise<number> {
-    console.log('[SCAN] Scanning for potential dead code...');
+    if (!this.silent) {
+      console.log('[SCAN] Scanning for potential dead code...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -131,12 +136,16 @@ export class ShrimpChecks {
 
               if (updatedContent !== content) {
                 await fs.writeFile(file, updatedContent, 'utf-8');
-                console.log(
-                  `  🔧 Removed ${debugLines.length} console.log statements from ${file}`
-                );
+                if (!this.silent) {
+                  console.log(
+                    `  🔧 Removed ${debugLines.length} console.log statements from ${file}`
+                  );
+                }
               }
             } catch (error) {
-              console.log(`  [!] Could not auto-fix debug statements in ${file}: ${error}`);
+              if (!this.silent) {
+                console.log(`  [!] Could not auto-fix debug statements in ${file}: ${error}`);
+              }
             }
           }
         }
@@ -148,14 +157,18 @@ export class ShrimpChecks {
     if (issues > 0) {
       this.recommendations.push(`Consider reviewing ${issues} potential dead code issues`);
     } else {
-      console.log('  [OK] No obvious dead code found');
+      if (!this.silent) {
+        console.log('  [OK] No obvious dead code found');
+      }
     }
 
     return Math.min(issues, 15); // Reduced penalty cap
   }
 
   async checkPackageHealth(): Promise<number> {
-    console.log('[SCAN] Checking package health...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking package health...');
+    }
 
     try {
       const packageJson = path.join(this.sourceRoot, 'package.json');
@@ -181,20 +194,28 @@ export class ShrimpChecks {
 
       if (issues.length > 0) {
         this.recommendations.push(`Package: ${issues.join(', ')}`);
-        console.log(`  [!] ${issues.length} package issues found`);
+        if (!this.silent) {
+          console.log(`  [!] ${issues.length} package issues found`);
+        }
       } else {
-        console.log('  [OK] Package health looks good');
+        if (!this.silent) {
+          console.log('  [OK] Package health looks good');
+        }
       }
 
       return issues.length * 2; // Reduced penalty
     } catch (error) {
-      console.log('  [!] Could not check package health');
+      if (!this.silent) {
+        console.log('  [!] Could not check package health');
+      }
       return 3;
     }
   }
 
   async checkDirectoryStructure(): Promise<number> {
-    console.log('[SCAN] Checking directory structure...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking directory structure...');
+    }
 
     let issues = 0;
 
@@ -216,7 +237,9 @@ export class ShrimpChecks {
       if (emptyDirs > 0) {
         issues = Math.min(emptyDirs, 8); // Reduced penalty
         this.recommendations.push(`${emptyDirs} empty directories could be cleaned up`);
-        console.log(`  [!] Found ${emptyDirs} empty directories`);
+        if (!this.silent) {
+          console.log(`  [!] Found ${emptyDirs} empty directories`);
+        }
 
         for (const dir of dirs) {
           try {
@@ -227,9 +250,13 @@ export class ShrimpChecks {
               if (this.shouldAutoFix) {
                 try {
                   await fs.rmdir(dir);
-                  console.log(`  🔧 Removed empty directory: ${dir}`);
+                  if (!this.silent) {
+                    console.log(`  🔧 Removed empty directory: ${dir}`);
+                  }
                 } catch (error) {
-                  console.log(`  [!] Could not remove ${dir}: ${error}`);
+                  if (!this.silent) {
+                    console.log(`  [!] Could not remove ${dir}: ${error}`);
+                  }
                 }
               }
             }
@@ -238,10 +265,14 @@ export class ShrimpChecks {
           }
         }
       } else {
-        console.log('  [OK] No empty directories found');
+        if (!this.silent) {
+          console.log('  [OK] No empty directories found');
+        }
       }
     } catch (error) {
-      console.log('  [!] Could not check directory structure');
+      if (!this.silent) {
+        console.log('  [!] Could not check directory structure');
+      }
       issues = 2;
     }
 
@@ -249,7 +280,9 @@ export class ShrimpChecks {
   }
 
   async checkForLargeFiles(): Promise<number> {
-    console.log('[SCAN] Checking for large files...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking for large files...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -286,16 +319,22 @@ export class ShrimpChecks {
     if (issues > 0) {
       const largeCount = this.details?.largeFiles.length || 0;
       this.recommendations.push(`Consider refactoring ${largeCount} large files (>1000 lines)`);
-      console.log(`  [!] Found ${largeCount} large files`);
+      if (!this.silent) {
+        console.log(`  [!] Found ${largeCount} large files`);
+      }
     } else {
-      console.log('  [OK] No overly large files found');
+      if (!this.silent) {
+        console.log('  [OK] No overly large files found');
+      }
     }
 
     return Math.min(issues, 8); // Reduced penalty cap - large files are OK for complex features
   }
 
   async checkCodeComplexity(): Promise<number> {
-    console.log('[SCAN] Analyzing code complexity...');
+    if (!this.silent) {
+      console.log('[SCAN] Analyzing code complexity...');
+    }
 
     let issues = 0;
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -348,9 +387,13 @@ export class ShrimpChecks {
     if (issues > 0) {
       const complexCount = this.details?.complexFunctions.length || 0;
       this.recommendations.push(`Consider simplifying ${complexCount} complex functions`);
-      console.log(`  [!] Found ${complexCount} complex functions`);
+      if (!this.silent) {
+        console.log(`  [!] Found ${complexCount} complex functions`);
+      }
     } else {
-      console.log('  [OK] Code complexity looks reasonable');
+      if (!this.silent) {
+        console.log('  [OK] Code complexity looks reasonable');
+      }
     }
 
     return Math.min(issues, 8); // Reduced penalty cap
@@ -359,7 +402,9 @@ export class ShrimpChecks {
   // ==================== ENHANCED DETECTORS ====================
 
   async checkForBugs(): Promise<number> {
-    console.log('[SCAN] Scanning for potential bugs...');
+    if (!this.silent) {
+      console.log('[SCAN] Scanning for potential bugs...');
+    }
 
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
     let totalIssues = 0;
@@ -400,12 +445,16 @@ export class ShrimpChecks {
         this.recommendations.push(`[WARNING] Address ${warningCount} potential bug(s)`);
       }
 
-      console.log(`  [BUG] Found ${totalIssues} potential issues`);
-      console.log(
-        `     - ${errorCount} critical, ${warningCount} warnings, ${infoCount} info`
-      );
+      if (!this.silent) {
+        console.log(`  [BUG] Found ${totalIssues} potential issues`);
+        console.log(
+          `     - ${errorCount} critical, ${warningCount} warnings, ${infoCount} info`
+        );
+      }
     } else {
-      console.log('  [OK] No obvious bugs detected');
+      if (!this.silent) {
+        console.log('  [OK] No obvious bugs detected');
+      }
     }
 
     // Penalty: critical bugs = 5 points each, warnings = 0.5, info = 0.1
@@ -414,7 +463,9 @@ export class ShrimpChecks {
   }
 
   async checkPerformance(): Promise<number> {
-    console.log('[SCAN] Analyzing performance issues...');
+    if (!this.silent) {
+      console.log('[SCAN] Analyzing performance issues...');
+    }
 
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
     let totalIssues = 0;
@@ -455,12 +506,16 @@ export class ShrimpChecks {
         this.recommendations.push(`[PERF] Optimize ${moderateCount} performance bottleneck(s)`);
       }
 
-      console.log(`  [PERF] Found ${totalIssues} performance issues`);
-      console.log(
-        `     - ${criticalCount} critical, ${moderateCount} moderate, ${minorCount} minor`
-      );
+      if (!this.silent) {
+        console.log(`  [PERF] Found ${totalIssues} performance issues`);
+        console.log(
+          `     - ${criticalCount} critical, ${moderateCount} moderate, ${minorCount} minor`
+        );
+      }
     } else {
-      console.log('  [OK] No performance issues detected');
+      if (!this.silent) {
+        console.log('  [OK] No performance issues detected');
+      }
     }
 
     // Penalty: critical = 1 point, moderate = 0.5, minor = 0.1
@@ -469,7 +524,9 @@ export class ShrimpChecks {
   }
 
   async checkConsistency(): Promise<number> {
-    console.log('[SCAN] Checking code consistency...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking code consistency...');
+    }
 
     const consistencyDetector = new ConsistencyDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -504,7 +561,9 @@ export class ShrimpChecks {
       this.recommendations.push(
         `[STYLE] Improve ${totalIssues} consistency issue(s) across ${categoryCount} categories`
       );
-      console.log(`  [STYLE] Found ${totalIssues} consistency issues`);
+      if (!this.silent) {
+        console.log(`  [STYLE] Found ${totalIssues} consistency issues`);
+      }
 
       // Show top categories
       const topCategories = Object.entries(categories)
@@ -512,10 +571,14 @@ export class ShrimpChecks {
         .slice(0, 3);
 
       topCategories.forEach(([category, catIssues]) => {
-        console.log(`     - ${category}: ${(catIssues as any[]).length}`);
+        if (!this.silent) {
+          console.log(`     - ${category}: ${(catIssues as any[]).length}`);
+        }
       });
     } else {
-      console.log('  [OK] Code is consistent');
+      if (!this.silent) {
+        console.log('  [OK] Code is consistent');
+      }
     }
 
     // Penalty: 1 point per 3 issues (consistency is less critical)
@@ -523,7 +586,9 @@ export class ShrimpChecks {
   }
 
   async checkImports(): Promise<number> {
-    console.log('[SCAN] Analyzing imports...');
+    if (!this.silent) {
+      console.log('[SCAN] Analyzing imports...');
+    }
 
     const importDetector = new ImportDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -559,10 +624,14 @@ export class ShrimpChecks {
         this.recommendations.push(`[IMPORT] Organize ${orgCount} import statement(s)`);
       }
 
-      console.log(`  [IMPORT] Found ${totalIssues} import issues`);
-      console.log(`     - ${unusedCount} unused, ${orgCount} organization`);
+      if (!this.silent) {
+        console.log(`  [IMPORT] Found ${totalIssues} import issues`);
+        console.log(`     - ${unusedCount} unused, ${orgCount} organization`);
+      }
     } else {
-      console.log('  [OK] Imports are clean and organized');
+      if (!this.silent) {
+        console.log('  [OK] Imports are clean and organized');
+      }
     }
 
     // Penalty: unused imports = 0.5 points each, others = 0.3
@@ -575,7 +644,9 @@ export class ShrimpChecks {
   }
 
   async checkNextJSPatterns(): Promise<number> {
-    console.log('[SCAN] Checking Next.js best practices...');
+    if (!this.silent) {
+      console.log('[SCAN] Checking Next.js best practices...');
+    }
 
     const nextjsDetector = new NextJSDetector();
     const files = await this.findFiles(['**/*.ts', '**/*.tsx']);
@@ -606,10 +677,12 @@ export class ShrimpChecks {
         this.recommendations.push(`[NEXTJS] Address ${severityCounts.warning} Next.js warning(s)`);
       }
 
-      console.log(`  [NEXTJS] Found ${issues.length} Next.js pattern issues`);
-      console.log(
-        `     - ${severityCounts.error} errors, ${severityCounts.warning} warnings, ${severityCounts.info} info`
-      );
+      if (!this.silent) {
+        console.log(`  [NEXTJS] Found ${issues.length} Next.js pattern issues`);
+        console.log(
+          `     - ${severityCounts.error} errors, ${severityCounts.warning} warnings, ${severityCounts.info} info`
+        );
+      }
 
       // Show categories
       const categories = nextjsDetector.getIssuesByCategory();
@@ -618,10 +691,14 @@ export class ShrimpChecks {
         .slice(0, 3);
 
       topCategories.forEach(([category, catIssues]) => {
-        console.log(`     - ${category}: ${(catIssues as any[]).length}`);
+        if (!this.silent) {
+          console.log(`     - ${category}: ${(catIssues as any[]).length}`);
+        }
       });
     } else {
-      console.log('  [OK] Next.js patterns look good');
+      if (!this.silent) {
+        console.log('  [OK] Next.js patterns look good');
+      }
     }
 
     // Penalty: errors = 3 points, warnings = 1, info = 0.2

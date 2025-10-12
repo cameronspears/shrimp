@@ -1,0 +1,157 @@
+name: Publish to NPM
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-publish-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-publish-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate version match
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          echo "Git tag version: v${TAG_VERSION}"
+          echo "Package.json version: ${PACKAGE_VERSION}"
+
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "ERROR: Version mismatch between git tag and package.json"
+            exit 1
+          fi
+
+          echo "SUCCESS: Versions match"
+
+      - name: Run type checking
+        run: bun run lint
+
+      - name: Build project
+        run: bun run build
+
+      - name: Run tests
+        run: bun test --coverage
+
+      - name: Run health check
+        run: ./bin/shrimp.js check --threshold 70
+
+      - name: Verify package contents
+        run: |
+          echo "Verifying package contents..."
+
+          # Check required files exist
+          required_files=("dist/index.js" "dist/index.d.ts" "bin/shrimp.js" "README.md" "package.json")
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Required file missing: $file"
+              exit 1
+            fi
+            echo "Found: $file"
+          done
+
+          echo "SUCCESS: All required files present"
+
+  publish-npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build project
+        run: bun run build
+
+      - name: Build MCP server
+        run: |
+          cd mcp-server
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Shrimp Health v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            ```bash
+            npm install -g @shrimphealth/cli
+            # or
+            bun install -g @shrimphealth/cli
+            ```
+
+            ### What's New
+            See [CHANGELOG.md](https://github.com/cameronspears/shrimp/blob/main/CHANGELOG.md) for details.
+
+            ### Documentation
+            - [README](https://github.com/cameronspears/shrimp/blob/main/README.md)
+            - [MCP Server Setup](https://github.com/cameronspears/shrimp/blob/main/mcp-server/README.md)
+
+            ---
+            Generated with GitHub Actions
+          draft: false
+          prerelease: false
+
+  publish-tag-check:
+    name: Notify Success
+    runs-on: ubuntu-latest
+    needs: publish-npm
+
+    steps:
+      - name: Success notification
+        run: |
+          echo "Successfully published @shrimphealth/cli to NPM"
+          echo "Tag: ${GITHUB_REF#refs/tags/}"
+          echo "Release available at: https://www.npmjs.com/package/@shrimphealth/cli"

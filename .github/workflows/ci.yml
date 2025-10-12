@@ -8,6 +8,75 @@ on:
 
 jobs:
   test:
+    name: Test (Bun ${{ matrix.bun-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        bun-version: ['1.0.0', '1.1.0', 'latest']
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ matrix.bun-version }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ matrix.bun-version }}-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-${{ matrix.bun-version }}-
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run type checking
+        run: bun run lint
+
+      - name: Build project
+        run: bun run build
+
+      - name: Run tests with coverage
+        run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text
+
+      - name: Enforce coverage threshold (80%)
+        run: |
+          # Extract coverage percentage from lcov output
+          coverage=$(bun test --coverage --coverage-reporter=text 2>&1 | grep -oP 'All files\s+\|\s+\K[\d.]+' | head -1 || echo "0")
+          echo "Coverage: ${coverage}%"
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "ERROR: Coverage ${coverage}% is below 80% threshold"
+            exit 1
+          fi
+          echo "SUCCESS: Coverage ${coverage}% meets 80% threshold"
+
+      - name: Run health check on self (dogfooding)
+        run: ./bin/shrimp.js check --threshold 70
+
+      - name: Upload coverage to Codecov
+        if: matrix.bun-version == 'latest'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage to GitHub
+        if: matrix.bun-version == 'latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  security:
+    name: Security Audit
     runs-on: ubuntu-latest
 
     steps:
@@ -19,43 +88,39 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Run type checking
-        run: bun run lint
-
-      - name: Build project
-        run: bun run build
-
-      - name: Run tests
-        run: bun test --coverage
-
-      - name: Run health check on self
-        run: ./bin/shrimp.js check --threshold 65
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+      - name: Cache Bun dependencies
+        uses: actions/cache@v3
         with:
-          fail_ci_if_error: false
-
-  security:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-security-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-security-
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
-      - name: Run security audit  
-        run: bun audit || true
+      - name: Run security audit
+        run: |
+          echo "Running security audit..."
+          bun audit || {
+            echo "WARNING: Security vulnerabilities found"
+            exit 0
+          }
+
+      - name: Check for known vulnerabilities
+        run: |
+          # Create audit report
+          bun audit --json > audit-report.json 2>&1 || true
+
+          # Check for high/critical vulnerabilities
+          if grep -q '"severity":"high"\|"severity":"critical"' audit-report.json 2>/dev/null; then
+            echo "CRITICAL: High or critical vulnerabilities found"
+            cat audit-report.json
+            exit 1
+          fi
 
   build-mcp:
+    name: Build MCP Server
     runs-on: ubuntu-latest
 
     steps:
@@ -64,16 +129,67 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-mcp-${{ hashFiles('**/bun.lockb', 'mcp-server/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-mcp-
+
+      - name: Install main dependencies
+        run: bun install --frozen-lockfile
 
       - name: Build MCP server
         run: |
           cd mcp-server
-          bun install
+          bun install --frozen-lockfile
           bun run build
 
       - name: Verify MCP build
         run: |
           if [ ! -f mcp-server/build/index.js ]; then
-            echo "MCP server build failed"
+            echo "ERROR: MCP server build failed - index.js not found"
             exit 1
           fi
+          echo "SUCCESS: MCP server built successfully"
+          ls -lh mcp-server/build/
+
+      - name: Upload MCP build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-build
+          path: mcp-server/build/
+
+  quality-gates:
+    name: Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs: [test, security, build-mcp]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Test job: ${{ needs.test.result }}"
+          echo "Security job: ${{ needs.security.result }}"
+          echo "Build MCP job: ${{ needs.build-mcp.result }}"
+
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "FAILED: Test job failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.security.result }}" != "success" ]; then
+            echo "FAILED: Security job failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.build-mcp.result }}" != "success" ]; then
+            echo "FAILED: Build MCP job failed"
+            exit 1
+          fi
+
+          echo "SUCCESS: All quality gates passed!"

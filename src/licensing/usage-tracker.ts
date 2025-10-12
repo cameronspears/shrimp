@@ -1,3 +1,6 @@
+// Licensing removed - fully open source
+// Usage tracking kept for local stats only (no enforcement, no remote analytics)
+
 import Conf from 'conf';
 import type { UsageStats } from '../types/index.js';
 
@@ -7,7 +10,7 @@ const config = new Conf({
 
 export class UsageTracker {
   /**
-   * Track a health check
+   * Track a health check (for local statistics only)
    */
   trackCheck(healthScore: number): void {
     // Increment monthly counter
@@ -33,15 +36,6 @@ export class UsageTracker {
     history.push(healthScore);
     if (history.length > 30) history.shift();
     config.set('healthScoreHistory', history);
-
-    // Optional: Send anonymous analytics (only with user consent)
-    if (config.get('analyticsEnabled', false)) {
-      this.sendAnonymousAnalytics({
-        event: 'health_check',
-        healthScore,
-        timestamp: Date.now(),
-      });
-    }
   }
 
   /**
@@ -67,17 +61,17 @@ export class UsageTracker {
   }
 
   /**
-   * Enable or disable analytics
+   * Enable or disable analytics (no-op, kept for backwards compatibility)
    */
   setAnalyticsEnabled(enabled: boolean): void {
-    config.set('analyticsEnabled', enabled);
+    // No-op - analytics removed
   }
 
   /**
-   * Check if analytics is enabled
+   * Check if analytics is enabled (always false)
    */
   isAnalyticsEnabled(): boolean {
-    return config.get('analyticsEnabled', false) as boolean;
+    return false;
   }
 
   /**
@@ -95,23 +89,5 @@ export class UsageTracker {
   private getCurrentMonth(): string {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }
-
-  /**
-   * Send anonymous analytics (placeholder for future implementation)
-   */
-  private async sendAnonymousAnalytics(data: any): Promise<void> {
-    // TODO: Implement analytics endpoint
-    // This would send to your analytics service
-    // Examples: PostHog, Mixpanel, custom endpoint
-    try {
-      // const response = await fetch('https://api.shrimphealth.com/analytics', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-    } catch (error) {
-      // Silently fail - analytics should never break functionality
-    }
   }
 }

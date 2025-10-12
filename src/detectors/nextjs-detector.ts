@@ -11,15 +11,27 @@ export interface NextJSIssue {
 export class NextJSDetector {
   private issues: NextJSIssue[] = [];
 
+  private isInAppDir(file: string): boolean {
+    return file.includes('/app/') || file.startsWith('app/');
+  }
+
+  private isInApiDir(file: string): boolean {
+    return file.includes('/app/api/') || file.includes('app/api/');
+  }
+
   async analyzeFile(file: string, content: string): Promise<void> {
     const lines = content.split('\n');
 
     // Skip non-Next.js related files
     if (
       file.includes('/node_modules/') ||
+      file.includes('node_modules/') ||
       file.includes('/.next/') ||
       file.includes('/scripts/') ||
-      file.includes('/tests/')
+      file.includes('/tests/') ||
+      file.includes('tests/') ||
+      file.includes('.test.') ||
+      file.includes('.spec.')
     ) {
       return;
     }
@@ -42,7 +54,7 @@ export class NextJSDetector {
         const line = lines[i];
 
         // Skip if it's in emails directory (emails can use <img>)
-        if (file.includes('/emails/')) continue;
+        if (file.includes('/emails/') || file.startsWith('emails/')) continue;
 
         if (line.includes('<img') && !line.includes('next/image')) {
           this.issues.push({
@@ -61,7 +73,7 @@ export class NextJSDetector {
 
   private detectServerClientPatterns(file: string, lines: string[], content: string): void {
     // Only check app directory files
-    if (!file.includes('/app/') || !file.endsWith('.tsx')) return;
+    if (!this.isInAppDir(file) || !file.endsWith('.tsx')) return;
 
     // Check for actual 'use client' directives (not in comments)
     const hasUseClient = lines.some(
@@ -130,7 +142,7 @@ export class NextJSDetector {
   private detectMetadataPatterns(file: string, lines: string[]): void {
     // Check app directory page and layout files
     if (
-      (file.includes('/app/') && (file.endsWith('page.tsx') || file.endsWith('layout.tsx'))) ||
+      (this.isInAppDir(file) && (file.endsWith('page.tsx') || file.endsWith('layout.tsx'))) ||
       file.includes('/(marketing)/')
     ) {
       const hasMetadataExport = lines.some(
@@ -155,7 +167,7 @@ export class NextJSDetector {
 
   private detectCachingPatterns(file: string, lines: string[]): void {
     // Check for fetch without cache configuration
-    if (file.includes('/app/') && file.endsWith('.tsx')) {
+    if (this.isInAppDir(file) && file.endsWith('.tsx')) {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
@@ -200,7 +212,7 @@ export class NextJSDetector {
 
   private detectRouteHandlerPatterns(file: string, lines: string[]): void {
     // Check API route handlers in app/api
-    if (file.includes('/app/api/') && file.endsWith('route.ts')) {
+    if (this.isInApiDir(file) && file.endsWith('route.ts')) {
       // Check if exports proper HTTP methods (both function and const patterns)
       const hasExportedMethod = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].some((method) =>
         lines.some(
@@ -242,7 +254,7 @@ export class NextJSDetector {
   }
 
   private detectDataFetchingPatterns(file: string, lines: string[], content: string): void {
-    if (!file.includes('/app/') || !file.endsWith('.tsx')) return;
+    if (!this.isInAppDir(file) || !file.endsWith('.tsx')) return;
 
     // Check for sequential fetches that could be parallel
     const fetchCalls: number[] = [];
@@ -281,11 +293,13 @@ export class NextJSDetector {
     // Check for data fetching in Client Components
     const isClientComponent = content.includes("'use client'") || content.includes('"use client"');
     if (isClientComponent) {
-      const hasFetchInComponent = lines.some(
-        (line) => line.includes('fetch(') && !line.includes('useEffect')
-      );
+      // Check if fetch appears outside useEffect
+      // We check if content has useEffect at all to be lenient
+      const hasUseEffect = content.includes('useEffect');
+      const hasFetch = content.includes('fetch(');
 
-      if (hasFetchInComponent) {
+      // Only flag if fetch is present but useEffect is not (indicating fetch outside useEffect)
+      if (hasFetch && !hasUseEffect) {
         this.issues.push({
           file,
           category: 'Data Fetching',
@@ -300,7 +314,7 @@ export class NextJSDetector {
 
   private detectErrorHandlingPatterns(file: string): void {
     // Check if directory has error.tsx
-    if (file.includes('/app/') && file.endsWith('page.tsx')) {
+    if (this.isInAppDir(file) && file.endsWith('page.tsx')) {
       // Note: This is a placeholder - in practice we'd check the filesystem
       // For now, we'll mark it as info-level reminder
       const hasErrorFile = false;
@@ -341,7 +355,7 @@ export class NextJSDetector {
 
   private detectRuntimeConfig(file: string, lines: string[]): void {
     // Check for environment variable misuse
-    if (file.includes('/app/') && (file.endsWith('.tsx') || file.endsWith('.ts'))) {
+    if (this.isInAppDir(file) && (file.endsWith('.tsx') || file.endsWith('.ts'))) {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
