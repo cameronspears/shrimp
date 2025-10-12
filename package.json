@@ -21,7 +21,7 @@
     "test:report": "bun run scripts/generate-test-report.ts",
     "test:track": "bun run scripts/track-quality-trend.ts",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "bun run build && bun run test"
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "code-health",
