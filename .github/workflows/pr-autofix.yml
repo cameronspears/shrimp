@@ -2,8 +2,18 @@ name: Auto-fix Code Health Issues on PR
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened]
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'LICENSE'
+
+concurrency:
+  group: pr-autofix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -13,6 +23,7 @@ jobs:
   autofix:
     name: Auto-fix Issues
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
 
     steps:
       - name: Checkout code
