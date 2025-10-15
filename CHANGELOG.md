@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### First Production Release
 
-This is the inaugural release of Shrimp Health - an AI-powered code health monitoring CLI tool designed specifically for Next.js projects and Claude Code users. This release represents a complete transformation from prototype to production-ready quality tool.
+This is the inaugural release of Shrimp Health - a Claude MCP server for Next.js 15+ code quality. Designed specifically for Claude Code users to keep Next.js codebases clean, WCAG 2.0 compliant, and following App Router best practices.
 
 ### Added
 
-#### Comprehensive Testing Suite (362 New Tests)
+#### Comprehensive Testing Suite (406 Tests Total)
 - **BugDetectorAST**: 78 tests covering all bug detection patterns
   - Empty catch blocks (5 tests)
   - Async error handling (8 tests)
@@ -63,7 +63,7 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
   - Dry-run mode testing
   - Fix application and verification
 
-**Total Test Suite**: 379 tests (17 initial → 379 total) across 11 test files, ~7,300 lines of test code
+**Total Test Suite**: 406 tests with 84.56% coverage across 11 test files
 
 #### CI/CD Infrastructure
 - **GitHub Actions CI Pipeline** (.github/workflows/ci.yml)
@@ -94,24 +94,25 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
   - create-t3-app
   - taxonomy (Next.js example)
   - next-auth
-- Performance metrics tracked:
-  - Average analysis time: 8.09ms per file (target: <50ms)
-  - 100 files analyzed in 809ms
-  - Full test suite execution: ~56 seconds for 379 tests
-- Real-world issue detection:
-  - 537 total issues found across test projects
-  - Average 2.50 issues per file
-  - 35% warnings, 65% info severity distribution
+- Performance metrics:
+  - Average analysis time: 19.02ms per file (target: <50ms) ✓
+  - 100 files analyzed in ~1.9 seconds
+  - Full test suite: 406 tests with 84.56% coverage
+- Real-world validation:
+  - Validated on real Next.js projects
+  - Self-dogfooded (95.8/100 health score)
+  - Performance: 19.02ms per file (2.6x faster than 50ms target)
 
 #### MCP Server Integration
-- 8 tools for seamless Claude Code integration:
-  - `shrimp_check` - Run comprehensive health checks
+- 9 tools for seamless Claude Code integration:
+  - `shrimp_check` - Run comprehensive health checks with threshold enforcement
   - `shrimp_fix` - Apply auto-fixes with dry-run support
-  - `shrimp_status` - Get quick health snapshot with trends
-  - `shrimp_explain` - Get detailed explanations of issue types
+  - `shrimp_status` - Get quick health snapshot with detailed breakdown
+  - `shrimp_explain` - Get detailed explanations of issue types with examples
   - `shrimp_watch_start` - Start real-time file watching
   - `shrimp_watch_stop` - Stop file watching and get statistics
-  - `shrimp_get_live_status` - Get cached watcher status (fast)
+  - `shrimp_get_live_status` - Get cached watcher status (fast, no re-scan)
+  - `shrimp_precommit` - Pre-commit checks for git hooks (analyzes staged files, auto-fix option, threshold enforcement)
   - Error handling improvements and better MCP protocol compliance
 
 #### Documentation
@@ -123,10 +124,10 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
   - Common gotchas and technical decisions
   - Dos and Don'ts for development
 - **README.md**: Updated with accurate metrics
-  - Real performance numbers (8ms per file)
-  - Actual test count (379 tests)
-  - Precision rate (66%+)
-  - Removed inaccurate marketing claims
+  - Real performance numbers (19ms per file)
+  - Actual test count (406 tests with 84.56% coverage)
+  - MCP-focused positioning for Claude Code users
+  - Next.js 15+ and WCAG 2.0 compliance focus
   - Added "Why Shrimp Health?" section
   - Battle-tested badges and real statistics
 
@@ -235,9 +236,9 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
 
 ### Performance
 
-- **Average file analysis**: 8.09ms (well under 50ms target)
-- **100 file benchmark**: 809ms total
-- **Full test suite**: ~56 seconds for 379 tests
+- **Average file analysis**: 19.02ms (well under 50ms target) ✓
+- **100 file benchmark**: ~1.9 seconds total
+- **Full test suite**: 406 tests with 84.56% coverage
 - **Memory usage**: Efficient with large codebases (tested on 200+ file projects)
 - **MCP server**: Minimal overhead, responds in <100ms for cached queries
 
@@ -254,10 +255,10 @@ This is the inaugural release of Shrimp Health - an AI-powered code health monit
 
 - **2025-10-11**: Initial commit - Project scaffolding and core architecture
 - **2025-10-11**: Removed emojis, added ASCII art for professional appearance
-- **2025-10-11**: Comprehensive testing suite with Bun integration (17 → 230+ tests)
+- **2025-10-11**: Comprehensive testing suite with Bun integration
 - **2025-10-11**: Added MVP features (file watching, confidence-scored auto-fixing)
 - **2025-10-11**: Fixed MCP server bugs and improved error handling
-- **2025-10-12**: Production-ready improvements (critical bug fixes, scoring refinements, open source transformation)
+- **2025-10-12**: Production-ready improvements (406 tests, 84.56% coverage, open source transformation)
 
 ---
 

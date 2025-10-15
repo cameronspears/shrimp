@@ -6,10 +6,12 @@ MCP (Model Context Protocol) server for Shrimp Health - enables Claude Code to r
 
 The Shrimp MCP server gives Claude Code the ability to:
 
-- Run health checks on your codebase
-- Automatically fix safe code health issues
-- Get quick health status summaries
-- Explain specific code health issues with examples
+- Run health checks with threshold enforcement
+- Automatically fix safe code health issues (with dry-run support)
+- Get quick health status summaries with detailed breakdowns
+- Explain specific code health issues with examples and fixes
+- Watch files in real-time for continuous quality monitoring
+- Run pre-commit checks on staged files
 
 All without you having to leave your conversation with Claude Code.
 
@@ -58,7 +60,7 @@ Claude Code will automatically use the `shrimp_check` tool and show you the resu
 
 ### shrimp_check
 
-Run a comprehensive health check on a codebase.
+Run a comprehensive health check on a codebase with threshold enforcement.
 
 **Parameters:**
 - `path` (optional): Path to check (defaults to current directory)
@@ -69,19 +71,18 @@ Run a comprehensive health check on a codebase.
 
 ### shrimp_fix
 
-Automatically fix safe code health issues.
+Automatically fix safe code health issues with dry-run support.
 
 **Parameters:**
 - `path` (optional): Path to fix (defaults to current directory)
 - `dryRun` (optional): Preview fixes without applying them
-- `categories` (optional): Specific issue categories to fix (imports, accessibility, performance, bugs, consistency)
 
 **Example Claude Code usage:**
 > "Fix all import issues in dry-run mode"
 
 ### shrimp_status
 
-Get quick status of codebase health.
+Get quick status of codebase health with detailed breakdown.
 
 **Parameters:**
 - `path` (optional): Path to check (defaults to current directory)
@@ -92,7 +93,7 @@ Get quick status of codebase health.
 
 ### shrimp_explain
 
-Get detailed explanation of a specific issue type.
+Get detailed explanation of a specific issue type with examples and fixes.
 
 **Parameters:**
 - `issueType` (required): Type of issue (e.g., "unused-import", "empty-catch", "missing-alt")
@@ -100,6 +101,47 @@ Get detailed explanation of a specific issue type.
 
 **Example Claude Code usage:**
 > "Explain the empty-catch issue"
+
+### shrimp_watch_start
+
+Start background file watching for real-time health monitoring.
+
+**Parameters:**
+- `path` (optional): Path to watch (defaults to current directory)
+
+**Example Claude Code usage:**
+> "Start watching my codebase for health changes"
+
+### shrimp_watch_stop
+
+Stop background file watching and get final statistics.
+
+**Parameters:** None
+
+**Example Claude Code usage:**
+> "Stop watching and show me the final stats"
+
+### shrimp_get_live_status
+
+Get real-time health status from the file watcher (fast, no re-scan).
+
+**Parameters:**
+- `includeIssues` (optional): Include top 10 issues in response
+
+**Example Claude Code usage:**
+> "What's the live health status?"
+
+### shrimp_precommit
+
+Run health checks on staged files before committing (NEW!).
+
+**Parameters:**
+- `stagedFiles` (optional): List of staged files to check (defaults to git diff --staged)
+- `threshold` (optional): Minimum health score threshold to pass (default: 80)
+- `autoFix` (optional): Automatically fix issues before commit (default: false)
+
+**Example Claude Code usage:**
+> "Check my staged files before I commit"
 
 ## Example Workflow
 

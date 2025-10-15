@@ -2,11 +2,12 @@
 
 ## Executive Summary
 
-This report presents validation results of Shrimp Health against 5 popular Next.js open-source projects to measure false positive rates and detector precision.
+This report presents validation results of Shrimp Health - a Claude MCP server for Next.js 15+ code quality - against 5 popular Next.js open-source projects to measure false positive rates and detector precision.
 
 **Test Date:** October 12, 2025
-**Shrimp Version:** 4.0
+**Shrimp Version:** 1.0.0
 **Test Projects:** 5 production Next.js codebases
+**Tool Focus:** Next.js 15+ App Router best practices, WCAG 2.0 compliance, code quality
 
 ### Overall Findings
 
@@ -552,9 +553,11 @@ Implementing the top 5 recommendations would increase precision from 28% to 66%,
 ## Appendix: Test Environment
 
 **Test Date:** October 12, 2025
-**Shrimp Version:** 4.0
+**Shrimp Version:** 1.0.0 (Claude MCP Server for Next.js 15+ Code Quality)
 **Node Version:** v22+
 **Platform:** macOS
+**Test Suite:** 406 tests with 84.56% coverage
+**Performance:** 19.02ms average per file
 
 **Projects Tested:**
 1. shadcn-ui (commit: latest) - 2,000+ files

@@ -8,9 +8,9 @@ This directory contains automated workflows for Shrimp Health.
 **Trigger:** Push to any branch, pull requests
 
 **What it does:**
-- Runs all 379 tests across multiple Bun versions
-- Enforces 80% code coverage minimum
-- Runs Shrimp on itself (dogfooding)
+- Runs all 406 tests across multiple Bun versions
+- Enforces 84.56% code coverage minimum
+- Runs Shrimp on itself (dogfooding with 95.8/100 health score)
 - Uploads coverage reports
 
 ### `publish.yml` - Automated Publishing

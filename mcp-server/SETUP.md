@@ -245,8 +245,8 @@ Once Shrimp MCP is working:
 
 ## Getting Help
 
-- **Issues:** https://github.com/cameronspears/shrimp/issues
-- **Discord:** [Join our community](#)
-- **Email:** support@shrimphealth.com
+- **Issues:** https://github.com/cameronspears/shrimp-health/issues
+- **Discussions:** https://github.com/cameronspears/shrimp-health/discussions
+- **Documentation:** See [CLAUDE.md](../CLAUDE.md) for detailed development guide
 
 Happy shipping!

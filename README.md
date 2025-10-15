@@ -1,27 +1,27 @@
 # Shrimp Health
 
-> **AI-powered code health monitoring with automated fixes - 100% Open Source**
+> **Claude MCP Server for Next.js 15+ Code Quality - 100% Open Source**
 
-Keep your codebase clean, consistent, and bug-free with Shrimp Health - the open source code quality tool that can automatically fix issues using Claude AI.
+Keep your Next.js codebase clean, WCAG 2.0 compliant, and following best practices with Shrimp Health - the MCP server designed for Claude Code that automatically monitors and fixes code quality issues.
 
 [![npm version](https://badge.fury.io/js/%40shrimphealth%2Fcli.svg)](https://www.npmjs.com/package/shrimp-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-537%20passing-brightgreen)](tests/)
-[![Precision](https://img.shields.io/badge/precision-66%25%2B-blue)](tests/validation/real-world-results.md)
-[![Performance](https://img.shields.io/badge/avg%20speed-8ms%2Ffile-green)](tests/integration/real-world.test.ts)
+[![Tests](https://img.shields.io/badge/tests-406%20passing-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-84.56%25-brightgreen)](tests/)
+[![Performance](https://img.shields.io/badge/avg%20speed-19ms%2Ffile-green)](tests/integration/real-world.test.ts)
 
 ## Why Shrimp Health?
 
-Shrimp Health is your **quality copilot** - specifically designed for Next.js projects and Claude Code users. Unlike general linters, Shrimp focuses on catching the issues AI coding assistants tend to miss:
+Shrimp Health is your **quality copilot** - an MCP server specifically designed for Claude Code users building Next.js 15+ applications. Unlike general linters, Shrimp focuses on App Router best practices, WCAG 2.0 compliance, and keeping your codebase clean:
 
-- **Framework-Aware**: Deep understanding of Next.js 15, Vercel, and React patterns
-- **Production-Ready**: Validated on real Next.js projects (shadcn-ui, create-t3-app, and more)
-- **High Precision**: 66%+ precision rate means actionable findings, not noise
-- **Blazing Fast**: 8ms average per file - analyze 100 files in under a second
-- **MCP Integration**: Works seamlessly inside Claude Code conversations
-- **Battle-Tested**: 537 comprehensive tests ensure reliability
+- **Next.js 15+ Focused**: Deep understanding of App Router, Server Components, and Vercel patterns
+- **WCAG 2.0 Compliance**: Automated accessibility checks for your UI components
+- **Production-Ready**: 406 tests with 84.56% coverage ensure reliability
+- **Fast**: 19ms average per file - analyze your entire codebase in seconds
+- **MCP Native**: Works seamlessly inside Claude Code conversations
+- **Battle-Tested**: Validated on real Next.js projects and self-dogfooded
 
-**Not a replacement for ESLint** - Shrimp complements your linter by focusing on architecture, performance, and Next.js-specific patterns that traditional linters miss.
+**Not a replacement for ESLint** - Shrimp complements your linter by focusing on Next.js patterns, accessibility, and best practices that traditional linters miss.
 
 ## Features
 
@@ -41,11 +41,11 @@ Shrimp Health is your **quality copilot** - specifically designed for Next.js pr
 - **Actionable Recommendations** - Know exactly what to improve
 
 ### Developer Experience
-- **Lightning Fast** - 8ms per file average (under 50ms target)
+- **Lightning Fast** - 19ms per file average (under 50ms target)
 - **Git Hooks** - Run automatically on every commit
 - **Real-time Watching** - Monitor health as you code (via MCP)
 - **Beautiful CLI** - Clear, colorful output
-- **537 Tests** - Comprehensive test coverage for reliability
+- **406 Tests** - Comprehensive test coverage with 84.56% coverage
 
 ## Installation
 
@@ -253,13 +253,14 @@ bun install && bun run build
 Claude Code will automatically use Shrimp's tools! See [mcp-server/SETUP.md](mcp-server/SETUP.md) for full instructions.
 
 **Available MCP Tools:**
-- `shrimp_check` - Run health checks
+- `shrimp_check` - Run health checks with threshold enforcement
 - `shrimp_fix` - Auto-fix issues (with dry-run support)
-- `shrimp_status` - Get quick status
-- `shrimp_explain` - Explain issue types
+- `shrimp_status` - Get quick status with detailed breakdown
+- `shrimp_explain` - Explain issue types with examples
 - `shrimp_watch_start` - Start real-time file watching
-- `shrimp_watch_stop` - Stop file watching
-- `shrimp_get_live_status` - Get cached watcher status
+- `shrimp_watch_stop` - Stop file watching and get statistics
+- `shrimp_get_live_status` - Get cached watcher status (fast, no re-scan)
+- `shrimp_precommit` - Pre-commit checks for git hooks (NEW!)
 
 ## Health Score
 
@@ -290,18 +291,16 @@ Shrimp Health has been validated against 5 real Next.js projects to ensure high 
 - **blog-starter** - Official Next.js example
 
 ### Results
-- **66%+ Precision** - Two-thirds of findings are actionable
-- **8.09ms Average** - Per file analysis time
-- **537 Tests** - Comprehensive test suite
-- **Real Projects** - Validated on production codebases
-
-See [tests/validation/real-world-results.md](tests/validation/real-world-results.md) for detailed analysis.
+- **406 Tests** - 84.56% coverage for reliability
+- **19ms Average** - Per file analysis time
+- **Self-Dogfooded** - Shrimp runs on itself (95.8/100 health score)
+- **Real Projects** - Validated on production Next.js codebases
 
 ### Performance Benchmarks
 ```
-Average analysis time: 8ms per file
-100 files: ~809ms
-1,000 files: ~8 seconds
+Average analysis time: 19.02ms per file
+100 files: ~1.9 seconds
+1,000 files: ~19 seconds
 Target: <50ms per file ✓
 Memory usage: <200MB typical
 ```
@@ -328,13 +327,13 @@ We welcome contributions! Here's how to get started:
 ### Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/cameronapak/shrimp-health.git
+git clone https://github.com/cameronspears/shrimp-health.git
 cd shrimp-health
 
 # Install dependencies
 bun install
 
-# Run tests (all 537 must pass!)
+# Run tests (all 406 must pass!)
 bun test
 
 # Build the project
@@ -345,16 +344,17 @@ cd mcp-server && bun install && bun run build
 ```
 
 ### Testing Requirements
-- All 537 tests must pass before submitting PRs
+- All 406 tests must pass before submitting PRs
+- Maintain 84.56%+ test coverage
 - New features require corresponding test coverage
 - Integration tests validate against real-world projects
 - See [CLAUDE.md](CLAUDE.md) for detailed development guidelines
 
 ### Quality Standards
-- Maintain 66%+ precision on validation projects
-- Keep analysis time under 50ms per file
+- Keep analysis time under 50ms per file (currently 19ms)
 - Follow TypeScript strict mode
 - Document all public APIs
+- Self-dogfood: Shrimp must score 95+ on itself
 
 ## License
 
@@ -362,15 +362,14 @@ MIT License - see [LICENSE](LICENSE)
 
 ## Links
 
-- [GitHub Repository](https://github.com/cameronspears/shrimp)
-- [Validation Results](tests/validation/real-world-results.md)
+- [GitHub Repository](https://github.com/cameronspears/shrimp-health)
 - [Development Guide](CLAUDE.md)
 - [MCP Setup Guide](mcp-server/SETUP.md)
 
 ## Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/cameronspears/shrimp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cameronspears/shrimp/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/cameronspears/shrimp-health/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cameronspears/shrimp-health/discussions)
 - **Documentation**: See [CLAUDE.md](CLAUDE.md) for detailed docs
 
 ---
