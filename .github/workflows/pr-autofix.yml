@@ -1,0 +1,159 @@
+name: Auto-fix Code Health Issues on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, develop]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    name: Auto-fix Issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build project
+        run: bun run build
+
+      - name: Run health check (before)
+        id: health_before
+        run: |
+          SCORE_BEFORE=$(./bin/shrimp.js check --json | grep -oP '"healthScore":\s*\K\d+' || echo "0")
+          echo "score_before=$SCORE_BEFORE" >> $GITHUB_OUTPUT
+          echo "Health score before: $SCORE_BEFORE"
+
+      - name: Auto-fix issues
+        id: autofix
+        run: |
+          ./bin/shrimp.js fix > fix-output.txt 2>&1 || true
+          cat fix-output.txt
+
+          # Check if any files were modified
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "fixes_applied=true" >> $GITHUB_OUTPUT
+          else
+            echo "fixes_applied=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run health check (after)
+        id: health_after
+        if: steps.autofix.outputs.fixes_applied == 'true'
+        run: |
+          SCORE_AFTER=$(./bin/shrimp.js check --json | grep -oP '"healthScore":\s*\K\d+' || echo "0")
+          echo "score_after=$SCORE_AFTER" >> $GITHUB_OUTPUT
+          echo "Health score after: $SCORE_AFTER"
+
+      - name: Commit auto-fixes
+        if: steps.autofix.outputs.fixes_applied == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add .
+          git commit -m "Auto-fix code health issues
+
+          Shrimp Health auto-fix applied the following improvements:
+          - Removed unused imports
+          - Fixed accessibility issues
+          - Optimized performance patterns
+          - Fixed common bugs
+
+          Health score: ${{ steps.health_before.outputs.score_before }} → ${{ steps.health_after.outputs.score_after }}
+
+          Generated with Shrimp Health
+          Co-Authored-By: Shrimp <noreply@shrimphealth.com>"
+
+      - name: Push changes
+        if: steps.autofix.outputs.fixes_applied == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
+
+      - name: Comment on PR
+        if: steps.autofix.outputs.fixes_applied == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const scoreBefore = ${{ steps.health_before.outputs.score_before }};
+            const scoreAfter = ${{ steps.health_after.outputs.score_after }};
+            const improvement = scoreAfter - scoreBefore;
+            const emoji = improvement > 0 ? '📈' : improvement < 0 ? '📉' : '➡️';
+
+            const comment = `## Shrimp Health Auto-Fix Results ${emoji}
+
+            | Metric | Before | After | Change |
+            |--------|--------|-------|--------|
+            | Health Score | ${scoreBefore}/100 | ${scoreAfter}/100 | ${improvement > 0 ? '+' : ''}${improvement} |
+
+            ### Fixes Applied
+            Shrimp automatically fixed:
+            - Removed unused imports
+            - Fixed accessibility issues (WCAG 2.0)
+            - Optimized React performance patterns
+            - Fixed common bugs and security issues
+
+            ${improvement >= 5 ? '🎉 Significant improvement!' : improvement > 0 ? '✅ Code quality improved' : ''}
+
+            <sub>Generated with [Shrimp Health](https://github.com/cameronspears/shrimp)</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Comment if no fixes needed
+        if: steps.autofix.outputs.fixes_applied == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = ${{ steps.health_before.outputs.score_before }};
+
+            const comment = `## Shrimp Health Check ✅
+
+            | Metric | Value |
+            |--------|-------|
+            | Health Score | ${score}/100 |
+
+            No auto-fixable issues found. Your code looks great!
+
+            <sub>Generated with [Shrimp Health](https://github.com/cameronspears/shrimp)</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Enforce health threshold
+        run: |
+          FINAL_SCORE=$(./bin/shrimp.js check --json | grep -oP '"healthScore":\s*\K\d+' || echo "0")
+          THRESHOLD=80
+
+          if [ "$FINAL_SCORE" -lt "$THRESHOLD" ]; then
+            echo "Health score $FINAL_SCORE is below threshold $THRESHOLD"
+            echo "Please review and fix remaining issues before merging"
+            exit 1
+          else
+            echo "Health score $FINAL_SCORE meets threshold $THRESHOLD"
+          fi

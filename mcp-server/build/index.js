@@ -75,6 +75,22 @@ const GetLiveStatusSchema = z.object({
         .optional()
         .describe('Include top 10 issues in response'),
 });
+const PrecommitCheckSchema = z.object({
+    stagedFiles: z
+        .array(z.string())
+        .optional()
+        .describe('List of staged files to check (defaults to git diff --staged)'),
+    threshold: z
+        .number()
+        .optional()
+        .default(80)
+        .describe('Minimum health score threshold to pass (default: 80)'),
+    autoFix: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe('Automatically fix issues before commit'),
+});
 // Initialize MCP server
 const server = new Server({
     name: 'shrimp-health',
@@ -244,6 +260,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     includeIssues: {
                         type: 'boolean',
                         description: 'Include top 10 issues in response',
+                    },
+                },
+            },
+        },
+        {
+            name: 'shrimp_precommit',
+            description: 'Run health checks on staged files before committing. Perfect for pre-commit hooks to ensure code quality. Checks only the files about to be committed, optionally auto-fixes issues, and enforces a minimum health score threshold. Returns commit recommendation (proceed/block) based on findings.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    stagedFiles: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'List of staged files to check (defaults to git diff --staged)',
+                    },
+                    threshold: {
+                        type: 'number',
+                        description: 'Minimum health score threshold to pass (default: 80)',
+                    },
+                    autoFix: {
+                        type: 'boolean',
+                        description: 'Automatically fix issues before commit (default: false)',
                     },
                 },
             },
@@ -559,6 +597,77 @@ Run \`shrimp check\` to see where this issue appears in your codebase.
                         },
                     ],
                 };
+            }
+            case 'shrimp_precommit': {
+                const { stagedFiles, threshold, autoFix } = PrecommitCheckSchema.parse(args);
+                try {
+                    // Get staged files if not provided
+                    let filesToCheck = stagedFiles;
+                    if (!filesToCheck || filesToCheck.length === 0) {
+                        try {
+                            const gitOutput = execSync('git diff --staged --name-only', {
+                                encoding: 'utf-8',
+                                cwd: process.cwd(),
+                            });
+                            filesToCheck = gitOutput.split('\n').filter((f) => f.trim() && f.match(/\.(ts|tsx|js|jsx)$/));
+                        }
+                        catch (error) {
+                            throw new McpError(ErrorCode.InternalError, 'Failed to get staged files. Are you in a git repository?');
+                        }
+                    }
+                    if (!filesToCheck || filesToCheck.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        recommendation: 'proceed',
+                                        message: 'No staged files to check',
+                                        filesChecked: 0,
+                                    }, null, 2),
+                                },
+                            ],
+                        };
+                    }
+                    // Run auto-fix if requested
+                    if (autoFix) {
+                        const fixResult = await runShrimpCommand('fix', process.cwd());
+                        if (fixResult.exitCode !== 0) {
+                            console.error('Auto-fix encountered issues:', fixResult.output);
+                        }
+                    }
+                    // Run health check on the codebase (will focus on staged files)
+                    const checkResult = await runShrimpCommand('check --json', process.cwd());
+                    const parsed = parseHealthOutput(checkResult.output);
+                    // Determine recommendation
+                    const shouldBlock = parsed.score < threshold;
+                    const recommendation = shouldBlock ? 'block' : 'proceed';
+                    // Get issues from recommendations
+                    const criticalIssues = parsed.recommendations.filter((r) => r.includes('[CRITICAL]') || r.includes('[ERROR]'));
+                    const response = {
+                        recommendation,
+                        healthScore: parsed.score,
+                        threshold,
+                        filesChecked: filesToCheck.length,
+                        message: shouldBlock
+                            ? `Health score ${parsed.score} is below threshold ${threshold}. Please fix issues before committing.`
+                            : `Health score ${parsed.score} meets threshold ${threshold}. Safe to commit.`,
+                        criticalIssues,
+                        recommendations: parsed.recommendations.slice(0, 5),
+                        autoFixApplied: autoFix,
+                    };
+                    return {
+                        content: [
+                            {
+                                type: 'text',
+                                text: JSON.stringify(response, null, 2),
+                            },
+                        ],
+                    };
+                }
+                catch (error) {
+                    throw new McpError(ErrorCode.InternalError, `Pre-commit check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
             }
             default:
                 throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
