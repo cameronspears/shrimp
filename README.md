@@ -4,7 +4,7 @@
 
 Keep your Next.js codebase clean, WCAG 2.0 compliant, and following best practices with Shrimp Health - the MCP server designed for Claude Code that automatically monitors and fixes code quality issues.
 
-[![npm version](https://badge.fury.io/js/%40shrimphealth%2Fcli.svg)](https://www.npmjs.com/package/shrimp-health)
+[![npm version](https://badge.fury.io/js/shrimp-health.svg)](https://www.npmjs.com/package/shrimp-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-406%20passing-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-84.56%25-brightgreen)](tests/)
